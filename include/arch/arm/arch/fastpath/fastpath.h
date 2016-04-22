@@ -32,5 +32,8 @@ NORETURN SECTION(".vectors.fastpath_reply_recv");
 void fastpath_irq(irq_t irq)
 NORETURN SECTION(".vectors.fastpath_irq");
 
+void fastpath_signal(word_t cptr)
+VISIBLE NORETURN SECTION(".vectors.fastpath_signal");
+
 #endif /* __ARCH_FASTPATH_H */
 

@@ -35,7 +35,7 @@ SECTIONS
     }
 
     ki_boot_end = .;
-    
+
     .text . : AT(ADDR(.text) - KERNEL_OFFSET)
     {
         /* Sit inside a large frame */
@@ -76,7 +76,7 @@ SECTIONS
         _breakpoint_stack_bottom = .;
         . = . + 4K;
         _breakpoint_stack_top = .;
-        
+
         /* large data such as the globals frame and global PD */
         *(.bss.aligned)
     }

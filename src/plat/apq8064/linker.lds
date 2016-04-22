@@ -28,7 +28,7 @@ SECTIONS
     }
 
     ki_boot_end = .;
-    
+
     .text . : AT(ADDR(.text) - KERNEL_OFFSET)
     {
         /* Sit inside a large frame */
@@ -39,6 +39,7 @@ SECTIONS
         *(.vectors.fastpath_call)
         *(.vectors.fastpath_reply_recv)
         *(.vectors.fastpath_irq)
+        *(.vectors.fastpath_signal)
         *(.vectors.text)
 
         /* Anything else that should be in the vectors page. */
@@ -69,7 +70,7 @@ SECTIONS
         _breakpoint_stack_bottom = .;
         . = . + 4K;
         _breakpoint_stack_top = .;
-        
+
         /* large data such as the globals frame and global PD */
         *(.bss.aligned)
     }

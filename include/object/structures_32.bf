@@ -126,7 +126,8 @@ block endpoint {
 -- Notification object: size = 16 bytes
 block notification {
     field_high ntfnBoundTCB 28
-    padding 4
+    field bound 1
+    padding 3
 
     field ntfnMsgIdentifier 32
 
