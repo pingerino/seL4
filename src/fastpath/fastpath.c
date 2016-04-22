@@ -11,6 +11,7 @@
 #include <config.h>
 #include <fastpath/fastpath.h>
 #include <object/reply.h>
+#include <object/notification.h>
 
 #ifdef CONFIG_BENCHMARK_TRACK_KERNEL_ENTRIES
 #include <benchmark/benchmark_track.h>
@@ -579,3 +580,103 @@ fastpath_irq(irq_t irq)
     mask_ack_bail(irq);
     UNREACHABLE();
 }
+
+
+void
+#ifdef ARCH_X86
+NORETURN
+#endif
+fastpath_signal(word_t cptr)
+{
+    word_t fault_type;
+    cap_t ntfn_cap;
+    notification_t *ntfn_ptr;
+    tcb_t *dest = NULL;
+    word_t badge;
+    notification_state_t ntfn_state;
+
+    /* get message info and fault type */
+    fault_type = seL4_Fault_get_seL4_FaultType(NODE_STATE(ksCurThread)->tcbFault);
+
+    /* check there's no saved fault */
+    if (unlikely(fault_type != seL4_Fault_NullFault)) {
+        slowpath(SysSend);
+    }
+
+    /* lookup the cap */
+    ntfn_cap = lookup_fp(TCB_PTR_CTE_PTR(NODE_STATE(ksCurThread), tcbCTable)->cap, cptr);
+
+    /* check it's a notification object */
+    if (unlikely(!cap_capType_equals(ntfn_cap, cap_notification_cap))) {
+        slowpath(SysSend);
+    }
+
+    /* get the address */
+    ntfn_ptr = NTFN_PTR(cap_notification_cap_get_capNtfnPtr(ntfn_cap));
+
+    /* get the state */
+    ntfn_state = notification_ptr_get_state(ntfn_ptr);
+
+    if (ntfn_state == NtfnState_Waiting) {
+        /* get the destination thread */
+        dest = TCB_PTR(notification_ptr_get_ntfnQueue_head(ntfn_ptr));
+    } else {
+        /* get the bound tcb */
+        dest = (tcb_t *) notification_ptr_get_ntfnBoundTCB(ntfn_ptr);
+    }
+
+    /* if the target is higher prio we'll need to invoke the scheduler,
+     * this fastpath only fastpaths signal where we don't change threads */
+    if (unlikely(dest && dest->tcbPriority > NODE_STATE(ksCurThread)->tcbPriority)) {
+        slowpath(SysSend);
+    }
+    /* --- POINT OF NO RETURN -- */
+
+#ifdef CONFIG_BENCHMARK_TRACK_KERNEL_ENTRIES
+    ksKernelEntry.is_fastpath = true;
+#endif
+
+    badge = cap_notification_cap_get_capNtfnBadge(ntfn_cap);
+
+    switch (ntfn_state) {
+    case NtfnState_Idle:
+        if (dest && thread_state_get_tsType(dest->tcbState) == ThreadState_BlockedOnReceive) {
+            endpoint_t *ep_ptr;
+            ep_ptr = EP_PTR(thread_state_get_blockingObject(dest->tcbState));
+            endpoint_ptr_set_epQueue_head_np(ep_ptr, TCB_REF(dest->tcbEPNext));
+            if (unlikely(dest->tcbEPNext)) {
+                dest->tcbEPNext->tcbEPPrev = NULL;
+            } else {
+                endpoint_ptr_mset_epQueue_tail_state(ep_ptr, 0, EPState_Idle);
+            }
+
+            setRegister(dest, badgeRegister, badge);
+            thread_state_ptr_set_tsType_np(&dest->tcbState, ThreadState_Running);
+            tcbSchedEnqueue(dest);
+        } else {
+            ntfn_set_active(ntfn_ptr, badge);
+        }
+        break;
+    case NtfnState_Waiting:
+        /* dequeue the destination */
+        notification_ptr_set_ntfnQueue_head_np(ntfn_ptr, TCB_REF(dest->tcbEPNext));
+        if (unlikely(dest->tcbEPNext)) {
+            dest->tcbEPNext->tcbEPPrev = NULL;
+        } else {
+            notification_ptr_mset_ntfnQueue_tail_state(ntfn_ptr, 0, NtfnState_Idle);
+        }
+        setRegister(dest, badgeRegister, badge);
+        thread_state_ptr_set_tsType_np(&dest->tcbState, ThreadState_Running);
+        tcbSchedEnqueue(dest);
+        break;
+    case NtfnState_Active:
+        ntfn_set_active(ntfn_ptr, badge | notification_ptr_get_ntfnMsgIdentifier(ntfn_ptr));
+        break;
+    }
+
+    fastpath_restore(getRegister(NODE_STATE(ksCurThread), badgeRegister),
+                     getRegister(NODE_STATE(ksCurThread), msgInfoRegister),
+                     NODE_STATE(ksCurThread));
+}
+
+

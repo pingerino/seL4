@@ -145,6 +145,9 @@ c_handle_syscall(word_t cptr, word_t msgInfo, syscall_t syscall, word_t reply)
     } else if (syscall == SysReplyRecv) {
         fastpath_reply_recv(cptr, msgInfo, reply);
         UNREACHABLE();
+    } else if (syscall == SysSend) {
+        fastpath_signal(cptr);
+        UNREACHABLE();
     }
 #endif /* CONFIG_FASTPATH */
 

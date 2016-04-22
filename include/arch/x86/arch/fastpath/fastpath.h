@@ -29,4 +29,7 @@ NORETURN;
 void fastpath_irq(irq_t irq)
 NORETURN;
 
+void fastpath_signal(word_t cptr)
+VISIBLE NORETURN;
+
 #endif
