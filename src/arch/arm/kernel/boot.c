@@ -568,6 +568,8 @@ init_kernel(
         fail ("Kernel init failed for some reason :(");
     }
 
+    NODE_STATE(ksCurTime) = getCurrentTime();
+    NODE_STATE(ksConsumed) = 0;
     schedule();
     activateThread();
 }
