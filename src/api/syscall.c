@@ -1,5 +1,4 @@
-/*
- * Copyright 2014, General Dynamics C4 Systems
+/* * Copyright 2014, General Dynamics C4 Systems
  *
  * This software may be distributed and modified according to the terms of
  * the GNU General Public License version 2. Note that NO WARRANTY is provided.
@@ -402,7 +401,7 @@ static void
 handleYield(void)
 {
     /* Yield the current remaining budget */
-    chargeBudget(0, REFILL_HEAD(NODE_STATE(ksCurSC)).rAmount);
+    chargeBudget(0, REFILL_HEAD(NODE_STATE(ksCurSC)).rAmount, false);
 }
 
 exception_t
