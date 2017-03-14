@@ -155,6 +155,7 @@ exception_t invokeTCB_Suspend(tcb_t *thread);
 exception_t invokeTCB_Resume(tcb_t *thread);
 exception_t invokeTCB_ThreadControl(tcb_t *target, cte_t* slot,
                                     cap_t fh_newCap, cte_t* fh_srcSlot,
+                                    cap_t th_newCap, cte_t *th_srcSlot,
                                     prio_t mcp, prio_t priority, cap_t cRoot_newCap,
                                     cte_t *cRoot_srcSlot, cap_t vRoot_newCap,
                                     cte_t *vRoot_srcSlot, word_t bufferAddr,

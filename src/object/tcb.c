@@ -877,15 +877,35 @@ decodeWriteRegisters(cap_t cap, word_t length, word_t *buffer)
                                     w, transferArch, buffer);
 }
 
+static bool_t
+validFaultHandler(cap_t cap)
+{
+    switch (cap_get_capType(cap)) {
+    case cap_endpoint_cap:
+        if (!cap_endpoint_cap_get_capCanSend(cap) ||
+            !cap_endpoint_cap_get_capCanGrant(cap)) {
+            current_syscall_error.type = seL4_InvalidCapability;
+            return false;
+        }
+        break;
+    case cap_null_cap:
+        /* just has no fault endpoint */
+        break;
+    default:
+        current_syscall_error.type = seL4_InvalidCapability;
+        return false;
+    }
+    return true;
+}
+
 /* SetPriority, SetMCPriority, SetIPCParams and SetSpace are all
  * specialisations of TCBConfigure. */
-
 exception_t
 decodeTCBConfigure(cap_t cap, word_t length, cte_t* slot,
                    extra_caps_t rootCaps, word_t *buffer)
 {
-    cte_t *bufferSlot, *cRootSlot, *vRootSlot, *fhSlot;
-    cap_t bufferCap, cRootCap, vRootCap, scCap, fhCap;
+    cte_t *bufferSlot, *cRootSlot, *vRootSlot, *fhSlot, *thSlot;
+    cap_t bufferCap, cRootCap, vRootCap, scCap, fhCap, thCap;
     deriveCap_ret_t dc_ret;
     seL4_PrioProps_t props;
     prio_t prio, mcp;
@@ -896,7 +916,8 @@ decodeTCBConfigure(cap_t cap, word_t length, cte_t* slot,
             || rootCaps.excaprefs[1] == NULL
             || rootCaps.excaprefs[2] == NULL
             || rootCaps.excaprefs[3] == NULL
-            || rootCaps.excaprefs[4] == NULL) {
+            || rootCaps.excaprefs[4] == NULL
+            || rootCaps.excaprefs[5] == NULL) {
         userError("TCB Configure: Truncated message.");
         current_syscall_error.type = seL4_TruncatedMessage;
         return EXCEPTION_SYSCALL_ERROR;
@@ -909,13 +930,15 @@ decodeTCBConfigure(cap_t cap, word_t length, cte_t* slot,
 
     fhCap   = rootCaps.excaprefs[0]->cap;
     fhSlot  = rootCaps.excaprefs[0];
-    scCap      = rootCaps.excaprefs[1]->cap;
-    cRootSlot  = rootCaps.excaprefs[2];
-    cRootCap   = rootCaps.excaprefs[2]->cap;
-    vRootSlot  = rootCaps.excaprefs[3];
-    vRootCap   = rootCaps.excaprefs[3]->cap;
-    bufferSlot = rootCaps.excaprefs[4];
-    bufferCap  = rootCaps.excaprefs[4]->cap;
+    thCap   = rootCaps.excaprefs[1]->cap;
+    thSlot  = rootCaps.excaprefs[1];
+    scCap      = rootCaps.excaprefs[2]->cap;
+    cRootSlot  = rootCaps.excaprefs[3];
+    cRootCap   = rootCaps.excaprefs[3]->cap;
+    vRootSlot  = rootCaps.excaprefs[4];
+    vRootCap   = rootCaps.excaprefs[4]->cap;
+    bufferSlot = rootCaps.excaprefs[5];
+    bufferCap  = rootCaps.excaprefs[5]->cap;
 
     prio = seL4_PrioProps_get_prio(props);
     mcp  = seL4_PrioProps_get_mcp(props);
@@ -1015,35 +1038,36 @@ decodeTCBConfigure(cap_t cap, word_t length, cte_t* slot,
         return EXCEPTION_SYSCALL_ERROR;
     }
 
+    /* fault handler */
     dc_ret = deriveCap(fhSlot, fhCap);
     if (dc_ret.status != EXCEPTION_NONE) {
         return dc_ret.status;
     }
     fhCap = dc_ret.cap;
-    switch (cap_get_capType(fhCap)) {
-        case cap_endpoint_cap:
-            if (!cap_endpoint_cap_get_capCanSend(fhCap) ||
-                !cap_endpoint_cap_get_capCanGrant(fhCap)) {
-                userError("TCB Configure: fault endpoint cap has invalid rights.");
-                current_syscall_error.type = seL4_InvalidCapability;
-                current_syscall_error.invalidCapNumber = 1;
-                return EXCEPTION_SYSCALL_ERROR;
-            }
-            break;
-        case cap_null_cap:
-            /* just has no fault endpoint */
-            break;
-        default:
-            userError("TCB Configure: fault endpoint cap invalid.");
-            current_syscall_error.type = seL4_InvalidCapability;
-            current_syscall_error.invalidCapNumber = 1;
-            return EXCEPTION_SYSCALL_ERROR;
+    if (!validFaultHandler(fhCap)) {
+        userError("TCB Configure: fault endpoint cap invalid.");
+        current_syscall_error.invalidCapNumber = 1;
+        return EXCEPTION_SYSCALL_ERROR;
+    }
+
+    /* timeout handler */
+    dc_ret = deriveCap(thSlot, thCap);
+    if (dc_ret.status != EXCEPTION_NONE) {
+        return dc_ret.status;
+    }
+    thCap = dc_ret.cap;
+    if (!validFaultHandler(thCap)) {
+        userError("TCB Configure: timeout endpoint cap invalid.");
+        current_syscall_error.invalidCapNumber = 2;
+        return EXCEPTION_SYSCALL_ERROR;
     }
 
     setThreadState(NODE_STATE(ksCurThread), ThreadState_Restart);
     return invokeTCB_ThreadControl(
                tcb, slot,
-               fhCap, fhSlot, mcp, prio,
+               fhCap, fhSlot,
+               thCap, thSlot,
+               mcp, prio,
                cRootCap, cRootSlot,
                vRootCap, vRootSlot,
                bufferAddr, bufferCap,
@@ -1074,6 +1098,7 @@ decodeSetPriority(cap_t cap, word_t length, word_t *buffer)
     setThreadState(NODE_STATE(ksCurThread), ThreadState_Restart);
     return invokeTCB_ThreadControl(
                TCB_PTR(cap_thread_cap_get_capTCBPtr(cap)), NULL,
+               cap_null_cap_new(), NULL,
                cap_null_cap_new(), NULL,
                NULL_PRIO, newPrio,
                cap_null_cap_new(), NULL,
@@ -1106,6 +1131,7 @@ decodeSetMCPriority(cap_t cap, word_t length, word_t *buffer)
     setThreadState(NODE_STATE(ksCurThread), ThreadState_Restart);
     return invokeTCB_ThreadControl(
                TCB_PTR(cap_thread_cap_get_capTCBPtr(cap)), NULL,
+               cap_null_cap_new(), NULL,
                cap_null_cap_new(), NULL,
                newMcp, NULL_PRIO,
                cap_null_cap_new(), NULL,
@@ -1153,6 +1179,7 @@ decodeSetIPCBuffer(cap_t cap, word_t length, cte_t* slot,
     return invokeTCB_ThreadControl(
                TCB_PTR(cap_thread_cap_get_capTCBPtr(cap)), slot,
                cap_null_cap_new(), NULL,
+               cap_null_cap_new(), NULL,
                NULL_PRIO, NULL_PRIO,
                cap_null_cap_new(), NULL,
                cap_null_cap_new(), NULL,
@@ -1165,13 +1192,14 @@ decodeSetSpace(cap_t cap, word_t length, cte_t* slot,
                extra_caps_t excaps, word_t *buffer)
 {
     word_t cRootData, vRootData;
-    cte_t *cRootSlot, *vRootSlot, *fhSlot;
-    cap_t cRootCap, vRootCap, fhCap;
+    cte_t *cRootSlot, *vRootSlot, *fhSlot, *thSlot;
+    cap_t cRootCap, vRootCap, fhCap, thCap;
     deriveCap_ret_t dc_ret;
 
     if (length < 2 || excaps.excaprefs[0] == NULL
             || excaps.excaprefs[1] == NULL
-            || excaps.excaprefs[2] == NULL) {
+            || excaps.excaprefs[2] == NULL
+            || excaps.excaprefs[3] == NULL) {
         userError("TCB SetSpace: Truncated message.");
         current_syscall_error.type = seL4_TruncatedMessage;
         return EXCEPTION_SYSCALL_ERROR;
@@ -1182,10 +1210,12 @@ decodeSetSpace(cap_t cap, word_t length, cte_t* slot,
 
     fhSlot     = excaps.excaprefs[0];
     fhCap      = excaps.excaprefs[0]->cap;
-    cRootSlot  = excaps.excaprefs[1];
-    cRootCap   = excaps.excaprefs[1]->cap;
-    vRootSlot  = excaps.excaprefs[2];
-    vRootCap   = excaps.excaprefs[2]->cap;
+    thSlot     = excaps.excaprefs[1];
+    thCap      = excaps.excaprefs[1]->cap;
+    cRootSlot  = excaps.excaprefs[2];
+    cRootCap   = excaps.excaprefs[2]->cap;
+    vRootSlot  = excaps.excaprefs[3];
+    vRootCap   = excaps.excaprefs[3]->cap;
 
     if (slotCapLongRunningDelete(
                 TCB_PTR_CTE_PTR(cap_thread_cap_get_capTCBPtr(cap), tcbCTable)) ||
@@ -1228,35 +1258,35 @@ decodeSetSpace(cap_t cap, word_t length, cte_t* slot,
         return EXCEPTION_SYSCALL_ERROR;
     }
 
+    /* fault handler */
     dc_ret = deriveCap(fhSlot, fhCap);
     if (dc_ret.status != EXCEPTION_NONE) {
         return dc_ret.status;
     }
     fhCap = dc_ret.cap;
-    switch (cap_get_capType(fhCap)) {
-        case cap_endpoint_cap:
-            if (!cap_endpoint_cap_get_capCanSend(fhCap) ||
-                !cap_endpoint_cap_get_capCanGrant(fhCap)) {
-                userError("TCB SetSpace: fault endpoint cap has invalid rights.");
-                current_syscall_error.type = seL4_InvalidCapability;
-                current_syscall_error.invalidCapNumber = 1;
-                return EXCEPTION_SYSCALL_ERROR;
-            }
-            break;
-        case cap_null_cap:
-            /* just has no fault endpoint */
-            break;
-        default:
-            userError("TCB SetSpace: fault endpoint cap invalid.");
-            current_syscall_error.type = seL4_InvalidCapability;
-            current_syscall_error.invalidCapNumber = 1;
-            return EXCEPTION_SYSCALL_ERROR;
+    if (!validFaultHandler(fhCap)) {
+        userError("TCB SetSpace: fault endpoint cap invalid.");
+        current_syscall_error.invalidCapNumber = 1;
+        return EXCEPTION_SYSCALL_ERROR;
+    }
+
+    /* timeout handler */
+    dc_ret = deriveCap(thSlot, thCap);
+    if (dc_ret.status != EXCEPTION_NONE) {
+        return dc_ret.status;
+    }
+    thCap = dc_ret.cap;
+    if (!validFaultHandler(thCap)) {
+        userError("TCB SetSpace: timeout endpoint cap invalid.");
+        current_syscall_error.invalidCapNumber = 2;
+        return EXCEPTION_SYSCALL_ERROR;
     }
 
     setThreadState(NODE_STATE(ksCurThread), ThreadState_Restart);
     return invokeTCB_ThreadControl(
                TCB_PTR(cap_thread_cap_get_capTCBPtr(cap)), slot,
                fhCap, fhSlot,
+               thCap, thSlot,
                NULL_PRIO, NULL_PRIO,
                cRootCap, cRootSlot,
                vRootCap, vRootSlot,
@@ -1411,6 +1441,7 @@ installTCBCap(tcb_t *target, cap_t tCap, cte_t *slot,
 exception_t
 invokeTCB_ThreadControl(tcb_t *target, cte_t* slot,
                         cap_t fh_newCap, cte_t *fh_srcSlot,
+                        cap_t th_newCap, cte_t *th_srcSlot,
                         prio_t mcp, prio_t priority,
                         cap_t cRoot_newCap, cte_t *cRoot_srcSlot,
                         cap_t vRoot_newCap, cte_t *vRoot_srcSlot,
@@ -1450,6 +1481,11 @@ invokeTCB_ThreadControl(tcb_t *target, cte_t* slot,
         }
 
         e = installTCBCap(target, tCap, slot, tcbFaultHandler, fh_newCap, fh_srcSlot);
+        if (e != EXCEPTION_NONE) {
+            return e;
+        }
+
+        e = installTCBCap(target, tCap, slot, tcbTimeoutHandler, th_newCap, th_srcSlot);
         if (e != EXCEPTION_NONE) {
             return e;
         }
