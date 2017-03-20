@@ -101,12 +101,19 @@ suspend(tcb_t *target)
     tcbSchedDequeue(target);
     tcbReleaseRemove(target);
     schedContext_cancelYieldTo(target);
+#if CONFIG_NUM_CRITICALITIES > 1
+    tcbCritDequeue(target);
+#endif
 }
 
 void
 restart(tcb_t *target)
 {
     if (isBlocked(target)) {
+#if CONFIG_NUM_CRITICALITIES > 1
+        tcbCritEnqueue(target);
+        maybeBoostPriority(target);
+#endif
         cancelIPC(target);
         setThreadState(target, ThreadState_Restart);
         schedContext_resume(target->tcbSchedContext);
@@ -460,25 +467,18 @@ setDomain(tcb_t *tptr, dom_t dom)
 }
 
 void
-setMCPriority(tcb_t *tptr, prio_t mcp)
+setActivePriority(tcb_t *tptr)
 {
-    tptr->tcbMCP = mcp;
-}
-
-void
-setPriority(tcb_t *tptr, prio_t prio)
-{
-    tcbSchedDequeue(tptr);
-    tptr->tcbPriority = prio;
-
     switch (thread_state_get_tsType(tptr->tcbState)) {
     case ThreadState_Running:
     case ThreadState_Restart:
+    case ThreadState_YieldTo:
         if (isSchedulable(tptr)) {
-            SCHED_ENQUEUE(tptr);
             if (tptr == NODE_STATE(ksCurThread)) {
                 rescheduleRequired();
-            }
+            } else {
+				switchIfRequiredTo(tptr);
+			}
         }
         break;
     case ThreadState_BlockedOnReceive:
@@ -492,6 +492,43 @@ setPriority(tcb_t *tptr, prio_t prio)
         break;
     }
 }
+
+void
+setMCPriority(tcb_t *tptr, prio_t mcp)
+{
+    tptr->tcbMCP = mcp;
+}
+
+void
+setPriority(tcb_t *tptr, prio_t prio)
+{
+    tcbSchedDequeue(tptr);
+    tptr->tcbPriority = prio;
+#if CONFIG_NUM_CRITICALITIES > 1
+    tptr->tcbBasePriority = prio;
+    maybeBoostPriority(tptr);
+#endif
+    setActivePriority(tptr);
+}
+
+#if CONFIG_NUM_CRITICALITIES > 1
+void
+setMCC(tcb_t *tptr, crit_t mcc)
+{
+    tptr->tcbMCC = mcc;
+}
+
+void
+setCriticality(tcb_t *tptr, crit_t crit)
+{
+    tcbCritDequeue(tptr);
+    tptr->tcbCrit = crit;
+    maybeBoostPriority(tptr);
+    if (isRunnable(tptr)) {
+        tcbCritEnqueue(tptr);
+    }
+}
+#endif
 
 /* Note that this thread will possibly continue at the end of this kernel
  * entry. Do not queue it yet, since a queue+unqueue operation is wasteful

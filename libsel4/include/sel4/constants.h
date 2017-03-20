@@ -52,7 +52,9 @@ enum {
 enum priorityConstants {
     seL4_InvalidPrio = -1,
     seL4_MinPrio = 0,
-    seL4_MaxPrio = CONFIG_NUM_PRIORITIES - 1
+    seL4_MaxPrio = CONFIG_NUM_PRIORITIES - 1,
+    seL4_MinCrit = 0,
+    seL4_MaxCrit = CONFIG_NUM_CRITICALITIES - 1,
 };
 
 /* seL4_MessageInfo_t defined in api/shared_types.bf */

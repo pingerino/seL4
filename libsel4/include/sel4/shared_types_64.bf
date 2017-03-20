@@ -11,6 +11,7 @@
 --
 
 -- this file contains types shared between libsel4 and the kernel
+#include <autoconf.h>
 
 base 64
 
@@ -23,10 +24,15 @@ block seL4_MessageInfo {
 }
 
 block seL4_PrioProps {
-    padding 32
-    padding 16
     field mcp  8
     field prio 8
+#if CONFIG_NUM_CRITICALITIES > 1
+    field mcc  8
+    field crit 8
+#else
+    padding 16
+#endif
+    padding 32
 }
 
 block seL4_CapRights {

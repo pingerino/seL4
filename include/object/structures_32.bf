@@ -303,11 +303,12 @@ block Timeout {
 -- Thread state: size = 12 bytes
 block thread_state(blockingIPCBadge, blockingIPCCanGrant, blockingIPCIsCall,
                    tcbQueued, blockingObject,
-                   tcbInReleaseQueue, replyObject, tsType) {
+                   tcbInReleaseQueue, replyObject, tsType, tcbCritQueued) {
     field blockingIPCBadge 28
     field blockingIPCCanGrant 1
     field blockingIPCIsCall 1
-    padding 2
+    field tcbCritQueued 1
+    padding 1
 
     -- this is fastpath-specific. it is useful to be able to write
     -- tsType and without changing tcbQueued or tcbInReleaseQueue

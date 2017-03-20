@@ -62,6 +62,13 @@ UP_STATE_DEFINE(sched_context_t *, ksCurSC);
 UP_STATE_DEFINE(tcb_t *, ksDebugTCBs);
 #endif /* CONFIG_DEBUG_BUILD */
 
+#if CONFIG_NUM_CRITICALITIES > 1
+/* current criticality level of this core */
+UP_STATE_DEFINE(crit_t, ksCriticality);
+/* list of active threads at each criticality per core */
+UP_STATE_DEFINE(tcb_queue_t, ksCritQueues[CONFIG_NUM_CRITICALITIES - 1]);
+#endif /* CONFIG_NUM_CRITICALITIES */
+
 /* Units of work we have completed since the last time we checked for
  * pending interrupts */
 word_t ksWorkUnitsCompleted;

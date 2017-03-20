@@ -31,6 +31,27 @@
 
 #define NULL_PRIO 0
 
+#if CONFIG_NUM_CRITICALITIES > 1
+static exception_t
+checkCrit(crit_t crit)
+{
+    prio_t mcc = NODE_STATE(ksCurThread)->tcbMCC;
+
+    /* system invariant: existing MCCs are bounded */
+    assert(mcc <= seL4_MaxCrit);
+
+    /* can't create a thread with crit greater than our own mcc */
+    if (crit > mcc) {
+        current_syscall_error.type = seL4_RangeError;
+        current_syscall_error.rangeErrorMin = seL4_MinCrit;
+        current_syscall_error.rangeErrorMax = mcc;
+        return EXCEPTION_SYSCALL_ERROR;
+    }
+
+    return EXCEPTION_NONE;
+}
+#endif
+
 static exception_t
 checkPrio(prio_t prio)
 {
@@ -55,6 +76,7 @@ checkPrio(prio_t prio)
 static inline void
 addToBitmap(word_t cpu, word_t dom, word_t prio)
 {
+    assert(prio < CONFIG_NUM_PRIORITIES * CONFIG_NUM_CRITICALITIES);
     word_t l1index;
     word_t l1index_inverted;
 
@@ -72,6 +94,7 @@ addToBitmap(word_t cpu, word_t dom, word_t prio)
 static inline void
 removeFromBitmap(word_t cpu, word_t dom, word_t prio)
 {
+    assert(prio < CONFIG_NUM_PRIORITIES * CONFIG_NUM_CRITICALITIES);
     word_t l1index;
     word_t l1index_inverted;
 
@@ -319,6 +342,55 @@ tcbReleaseDequeue(void)
 
     return detached_head;
 }
+
+#if CONFIG_NUM_CRITICALITIES > 1
+/* Add TCB to the head of a criticality queue */
+void
+tcbCritEnqueue(tcb_t *tcb)
+{
+    if (tcb->tcbCrit > seL4_MinCrit && !thread_state_get_tcbCritQueued(tcb->tcbState)) {
+        tcb_queue_t queue = NODE_STATE_ON_CORE(ksCritQueues[tcb->tcbCrit - 1u], tcb->tcbAffinity);
+
+        if (!queue.end) { /* Empty list */
+            queue.end = tcb;
+        } else {
+            queue.head->tcbCritPrev = tcb;
+        }
+        tcb->tcbCritPrev = NULL;
+        tcb->tcbCritNext = queue.head;
+        queue.head = tcb;
+
+        NODE_STATE_ON_CORE(ksCritQueues[tcb->tcbCrit - 1u], tcb->tcbAffinity) = queue;
+
+        thread_state_ptr_set_tcbCritQueued(&tcb->tcbState, true);
+    }
+}
+
+/* Remove TCB from a criticality queue */
+void
+tcbCritDequeue(tcb_t *tcb)
+{
+    if (tcb->tcbCrit > seL4_MinCrit && thread_state_get_tcbCritQueued(tcb->tcbState)) {
+        tcb_queue_t queue = NODE_STATE_ON_CORE(ksCritQueues[tcb->tcbCrit - 1u], tcb->tcbAffinity);
+
+        if (tcb->tcbCritPrev) {
+            tcb->tcbCritPrev->tcbCritNext = tcb->tcbCritNext;
+        } else {
+            queue.head = tcb->tcbCritNext;
+        }
+
+        if (tcb->tcbCritNext) {
+            tcb->tcbCritNext->tcbCritPrev = tcb->tcbCritPrev;
+        } else {
+            queue.end = tcb->tcbCritPrev;
+        }
+
+        NODE_STATE_ON_CORE(ksCritQueues[tcb->tcbCrit - 1u], tcb->tcbAffinity) = queue;
+
+        thread_state_ptr_set_tcbCritQueued(&tcb->tcbState, false);
+    }
+}
+#endif
 
 cptr_t PURE
 getExtraCPtr(word_t *bufferPtr, word_t i)
@@ -713,6 +785,14 @@ decodeTCBInvocation(word_t invLabel, word_t length, cap_t cap,
     case TCBUnbindNotification:
         return decodeUnbindNotification(cap);
 
+#if CONFIG_NUM_CRITICALITIES > 1
+    case TCBSetCriticality:
+        return decodeSetCriticality(cap, length, buffer);
+
+    case TCBSetMCCriticality:
+        return decodeSetMCCriticality(cap, length, buffer);
+#endif
+
         /* There is no notion of arch specific TCB invocations so this needs to go here */
 #ifdef CONFIG_VTX
     case TCBSetEPTRoot:
@@ -957,6 +1037,26 @@ decodeTCBConfigure(cap_t cap, word_t length, cte_t* slot,
         return status;
     }
 
+    crit_t crit = 0;
+    crit_t mcc = 0;
+#if CONFIG_NUM_CRITICALITIES > 1
+    crit = seL4_PrioProps_get_crit(props);
+    status = checkCrit(crit);
+    if (status != EXCEPTION_NONE) {
+        userError("TCB Configure: Requested criticality %lu too high (max %lu).",
+                (unsigned long) crit, (unsigned long) NODE_STATE(ksCurThread)->tcbMCC);
+        return status;
+    }
+
+    mcc  = seL4_PrioProps_get_mcc(props);
+    status = checkCrit(mcc);
+    if (status != EXCEPTION_NONE) {
+        userError("TCB Configure: Requested maximum controlled criticality %lu too high (max %lu).",
+                (unsigned long) mcc, (unsigned long) NODE_STATE(ksCurThread)->tcbMCC);
+        return status;
+    }
+#endif /* CONFIG_NUM_CRITICALITIES */
+
     if (bufferAddr == 0) {
         bufferSlot = NULL;
     } else {
@@ -1058,6 +1158,7 @@ decodeTCBConfigure(cap_t cap, word_t length, cte_t* slot,
                fhCap, fhSlot,
                thCap, thSlot,
                mcp, prio,
+               mcc, crit,
                cRootCap, cRootSlot,
                vRootCap, vRootSlot,
                bufferAddr, bufferCap,
@@ -1090,7 +1191,7 @@ decodeSetPriority(cap_t cap, word_t length, word_t *buffer)
                TCB_PTR(cap_thread_cap_get_capTCBPtr(cap)), NULL,
                cap_null_cap_new(), NULL,
                cap_null_cap_new(), NULL,
-               NULL_PRIO, newPrio,
+               NULL_PRIO, newPrio, 0, 0,
                cap_null_cap_new(), NULL,
                cap_null_cap_new(), NULL,
                0, cap_null_cap_new(),
@@ -1123,12 +1224,81 @@ decodeSetMCPriority(cap_t cap, word_t length, word_t *buffer)
                TCB_PTR(cap_thread_cap_get_capTCBPtr(cap)), NULL,
                cap_null_cap_new(), NULL,
                cap_null_cap_new(), NULL,
-               newMcp, NULL_PRIO,
+               newMcp, NULL_PRIO, 0, 0,
                cap_null_cap_new(), NULL,
                cap_null_cap_new(), NULL,
                0, cap_null_cap_new(),
                NULL, NULL, thread_control_update_mcp);
 }
+
+#if CONFIG_NUM_CRITICALITIES > 1
+exception_t
+decodeSetCriticality(cap_t cap, word_t length, word_t *buffer)
+{
+    crit_t criticality;
+    exception_t status;
+    tcb_t *tcb;
+
+    if (length < 1) {
+        userError("TCB SetCriticality: Truncated message.");
+        current_syscall_error.type = seL4_TruncatedMessage;
+        return EXCEPTION_SYSCALL_ERROR;
+    }
+
+    criticality = (crit_t) getSyscallArg(0, buffer);
+
+    status = checkCrit(criticality);
+    if (status != EXCEPTION_NONE) {
+        userError("TCB SetCriticality: Requested criticality %lu too high (max %lu).",
+                  (unsigned long) criticality, (unsigned long) NODE_STATE(ksCurThread)->tcbMCC);
+        return status;
+    }
+
+    tcb = TCB_PTR(cap_thread_cap_get_capTCBPtr(cap));
+    setThreadState(NODE_STATE(ksCurThread), ThreadState_Restart);
+    return invokeTCB_ThreadControl(
+               tcb, NULL, cap_null_cap_new(), 0, cap_null_cap_new(),
+               0, NULL_PRIO, NULL_PRIO, NULL_PRIO, criticality,
+               cap_null_cap_new(), NULL,
+               cap_null_cap_new(), NULL,
+               0, cap_null_cap_new(), NULL,
+               NULL, thread_control_update_crit);
+}
+
+exception_t
+decodeSetMCCriticality(cap_t cap, word_t length, word_t *buffer)
+{
+    prio_t mcc;
+    exception_t status;
+    tcb_t *tcb;
+
+    if (length < 1) {
+        userError("TCB SetCriticality: Truncated message.");
+        current_syscall_error.type = seL4_TruncatedMessage;
+        return EXCEPTION_SYSCALL_ERROR;
+    }
+
+    mcc = (prio_t) getSyscallArg(0, buffer);
+
+    status = checkCrit(mcc);
+    if (status != EXCEPTION_NONE) {
+        userError("TCB SetMCCriticality: Requested maximum controlled criticality %lu too high (max %lu).",
+                  (unsigned long) mcc, (unsigned long) NODE_STATE(ksCurThread)->tcbMCC);
+        return status;
+    }
+
+    tcb = TCB_PTR(cap_thread_cap_get_capTCBPtr(cap));
+    setThreadState(NODE_STATE(ksCurThread), ThreadState_Restart);
+    return invokeTCB_ThreadControl(
+               tcb, NULL, cap_null_cap_new(),
+               0, cap_null_cap_new(),
+               0, NULL_PRIO, NULL_PRIO, mcc, 0,
+               cap_null_cap_new(), NULL,
+               cap_null_cap_new(), NULL,
+               0, cap_null_cap_new(), NULL,
+               NULL, thread_control_update_mcc);
+}
+#endif /* CONFIG_NUM_CRITICALITIES > 1 */
 
 exception_t
 decodeSetIPCBuffer(cap_t cap, word_t length, cte_t* slot,
@@ -1170,7 +1340,7 @@ decodeSetIPCBuffer(cap_t cap, word_t length, cte_t* slot,
                TCB_PTR(cap_thread_cap_get_capTCBPtr(cap)), slot,
                cap_null_cap_new(), NULL,
                cap_null_cap_new(), NULL,
-               NULL_PRIO, NULL_PRIO,
+               NULL_PRIO, NULL_PRIO, 0, 0,
                cap_null_cap_new(), NULL,
                cap_null_cap_new(), NULL,
                cptr_bufferPtr, bufferCap,
@@ -1266,7 +1436,7 @@ decodeSetSpace(cap_t cap, word_t length, cte_t* slot,
                TCB_PTR(cap_thread_cap_get_capTCBPtr(cap)), slot,
                fhCap, fhSlot,
                thCap, thSlot,
-               NULL_PRIO, NULL_PRIO,
+               NULL_PRIO, NULL_PRIO, 0, 0,
                cRootCap, cRootSlot,
                vRootCap, vRootSlot,
                0, cap_null_cap_new(), NULL, NULL, thread_control_update_space);
@@ -1422,6 +1592,7 @@ invokeTCB_ThreadControl(tcb_t *target, cte_t* slot,
                         cap_t fh_newCap, cte_t *fh_srcSlot,
                         cap_t th_newCap, cte_t *th_srcSlot,
                         prio_t mcp, prio_t priority,
+                        crit_t mcc, crit_t crit,
                         cap_t cRoot_newCap, cte_t *cRoot_srcSlot,
                         cap_t vRoot_newCap, cte_t *vRoot_srcSlot,
                         word_t bufferAddr, cap_t bufferCap,
@@ -1439,6 +1610,16 @@ invokeTCB_ThreadControl(tcb_t *target, cte_t* slot,
     if (updateFlags & thread_control_update_priority) {
         setPriority(target, priority);
     }
+
+#if CONFIG_NUM_CRITICALITIES > 1
+    if (updateFlags & thread_control_update_mcc) {
+        setMCC(target, mcc);
+    }
+
+    if (updateFlags & thread_control_update_crit) {
+        setCriticality(target, crit);
+    }
+#endif
 
     if (updateFlags & thread_control_update_sc) {
         if (sc != NULL && sc != target->tcbSchedContext) {

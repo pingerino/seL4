@@ -55,8 +55,8 @@
 
 #endif /* ENABLE_SMP_SUPPORT */
 
-#define NUM_READY_QUEUES (CONFIG_NUM_DOMAINS * CONFIG_NUM_PRIORITIES)
-#define L2_BITMAP_SIZE ((CONFIG_NUM_PRIORITIES + wordBits - 1) / wordBits)
+#define NUM_READY_QUEUES (CONFIG_NUM_DOMAINS * CONFIG_NUM_PRIORITIES * CONFIG_NUM_CRITICALITIES)
+#define L2_BITMAP_SIZE ((CONFIG_NUM_PRIORITIES * CONFIG_NUM_CRITICALITIES + wordBits - 1) / wordBits)
 
 NODE_STATE_BEGIN(nodeState)
 NODE_STATE_DECLARE(tcb_queue_t, ksReadyQueues[NUM_READY_QUEUES]);
@@ -70,6 +70,10 @@ NODE_STATE_DECLARE(time_t, ksConsumed);
 NODE_STATE_DECLARE(time_t, ksCurTime);
 NODE_STATE_DECLARE(bool_t, ksReprogram);
 NODE_STATE_DECLARE(sched_context_t, *ksCurSC);
+#if CONFIG_NUM_CRITICALITIES > 1
+NODE_STATE_DECLARE(crit_t, ksCriticality);
+NODE_STATE_DECLARE(tcb_queue_t, ksCritQueues[CONFIG_NUM_CRITICALITIES - 1]);
+#endif /* CONFIG_NUM_CRITICALITIES */
 
 #ifdef CONFIG_HAVE_FPU
 /* Current state installed in the FPU, or NULL if the FPU is currently invalid */

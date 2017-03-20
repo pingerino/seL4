@@ -312,10 +312,11 @@ block Timeout {
 -- Thread state: size = 8 bytes
 block thread_state(blockingIPCBadge, blockingIPCCanGrant, blockingIPCIsCall,
                    tcbQueued, tsType,
-                   tcbInReleaseQueue, blockingObject, replyObject) {
+                   tcbInReleaseQueue, blockingObject, replyObject, tcbCritQueued) {
     field blockingIPCBadge 64
 
-    padding 16
+    padding 15
+    field tcbCritQueued 1
     field_high replyObject 44
     field blockingIPCCanGrant 1
     field blockingIPCIsCall 1

@@ -146,6 +146,26 @@ rollbackTime(void)
     NODE_STATE(ksConsumed) = 0llu;
 }
 
+void setActivePriority(tcb_t *tcb);
+#if CONFIG_NUM_CRITICALITIES > 1
+static inline void
+boostPriority(tcb_t *tcb, crit_t crit)
+{
+    tcbSchedDequeue(tcb);
+    tcb->tcbPriority = tcb->tcbBasePriority + crit * (word_t) CONFIG_NUM_PRIORITIES;
+    setActivePriority(tcb);
+}
+
+static inline void
+maybeBoostPriority(tcb_t *tcb)
+{
+    crit_t core_crit = NODE_STATE_ON_CORE(ksCriticality, tcb->tcbAffinity);
+    if (core_crit >= tcb->tcbCrit && core_crit > seL4_MinCrit) {
+        boostPriority(tcb, core_crit);
+    }
+}
+#endif /* CONFIG_NUM_CRITICALITIES > 1 */
+
 void configureIdleThread(tcb_t *tcb);
 void activateThread(void) VISIBLE;
 void suspend(tcb_t *target);
@@ -166,6 +186,8 @@ void switchToIdleThread(void);
 void setDomain(tcb_t *tptr, dom_t dom);
 void setPriority(tcb_t *tptr, prio_t prio);
 void setMCPriority(tcb_t *tptr, prio_t mcp);
+void setCriticality(tcb_t *tptr, crit_t crit);
+void setMCC(tcb_t *tptr, crit_t mcc);
 void scheduleTCB(tcb_t *tptr);
 void possibleSwitchTo(tcb_t *tptr);
 void setThreadState(tcb_t *tptr, _thread_state_t ts);

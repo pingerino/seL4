@@ -37,6 +37,10 @@
 #define CONFIG_NUM_PRIORITIES 256
 #endif
 
+#ifndef CONFIG_NUM_CRITICALITIES
+#define CONFIG_NUM_CRITICALITIES 1
+#endif
+
 /* maximum number of caps that can be created in one retype invocation */
 #ifndef CONFIG_RETYPE_FAN_OUT_LIMIT
 #define CONFIG_RETYPE_FAN_OUT_LIMIT 256

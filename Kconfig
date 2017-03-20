@@ -394,6 +394,13 @@ menu "seL4 System Parameters"
         help
             The number of priority levels per domain
 
+    config NUM_CRITICALITIES
+        int "Number of criticality levels"
+        default 1
+        range 1 256
+        help
+            The number of criticality levels
+
     config MAX_NUM_NODES
         int "Max number of CPU nodes"
         depends on NUM_DOMAINS = 1

@@ -11,6 +11,7 @@
  */
 
 #include <object/schedcontext.h>
+#include <kernel/thread.h>
 
 static exception_t
 invokeSchedContext_UnbindObject(sched_context_t *sc, cap_t cap)
@@ -282,6 +283,9 @@ schedContext_bindTCB(sched_context_t *sc, tcb_t *tcb)
             tcbSchedDequeue(tcb);
         }
         migrateTCB(tcb, sc->scCore);
+#if CONFIG_NUM_CRITICALITIES > 1
+        maybeBoostPriority(tcb);
+#endif /* CONFIG_NUM_CRITICALITIES > 1 */
     }
 #endif
 
@@ -342,6 +346,9 @@ schedContext_donate(sched_context_t *sc, tcb_t *to)
         if (to == NODE_STATE(ksCurThread)) {
             rescheduleRequired();
         }
+#if CONFIG_NUM_CRITICALITIES > 1
+        maybeBoostPriority(to);
+#endif
     }
 #endif
 }

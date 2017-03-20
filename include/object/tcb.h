@@ -55,6 +55,12 @@ void tcbSchedDequeue(tcb_t *tcb);
 void tcbDebugAppend(tcb_t *tcb);
 void tcbDebugRemove(tcb_t *tcb);
 #endif
+
+#if CONFIG_NUM_CRITICALITIES > 1
+void tcbCritEnqueue(tcb_t *tcb);
+void tcbCritDequeue(tcb_t *tcb);
+#endif
+
 void tcbReleaseRemove(tcb_t *tcb);
 void tcbReleaseEnqueue(tcb_t *tcb);
 tcb_t *tcbReleaseDequeue(void);
@@ -131,6 +137,10 @@ exception_t decodeTCBConfigure(cap_t cap, word_t length,
                                cte_t* slot, extra_caps_t rootCaps, word_t *buffer);
 exception_t decodeSetPriority(cap_t cap, word_t length, word_t *buffer);
 exception_t decodeSetMCPriority(cap_t cap, word_t length, word_t *buffer);
+#if CONFIG_NUM_CRITICALITIES > 1
+exception_t decodeSetCriticality(cap_t cap, word_t length, word_t *buffer);
+exception_t decodeSetMCC(cap_t cap, word_t length, word_t *buffer);
+#endif
 exception_t decodeSetIPCBuffer(cap_t cap, word_t length,
                                cte_t* slot, extra_caps_t excaps, word_t *buffer);
 exception_t decodeSetSpace(cap_t cap, word_t length,
@@ -146,7 +156,11 @@ enum thread_control_flag {
     thread_control_update_space = 0x4,
     thread_control_update_mcp = 0x8,
     thread_control_update_sc = 0x10,
-    thread_control_update_all = 0x1F,
+#if CONFIG_NUM_CRITICALITIES > 1
+    thread_control_update_crit = 0x20,
+    thread_control_update_mcc = 0x40,
+#endif
+    thread_control_update_all = 0xFFFFFFFF,
 };
 
 typedef word_t thread_control_flag_t;
@@ -156,7 +170,9 @@ exception_t invokeTCB_Resume(tcb_t *thread);
 exception_t invokeTCB_ThreadControl(tcb_t *target, cte_t* slot,
                                     cap_t fh_newCap, cte_t* fh_srcSlot,
                                     cap_t th_newCap, cte_t *th_srcSlot,
-                                    prio_t mcp, prio_t priority, cap_t cRoot_newCap,
+                                    prio_t mcp, prio_t priority,
+                                    crit_t mcc, crit_t crit,
+                                    cap_t cRoot_newCap,
                                     cte_t *cRoot_srcSlot, cap_t vRoot_newCap,
                                     cte_t *vRoot_srcSlot, word_t bufferAddr,
                                     cap_t bufferCap, cte_t *bufferSrcSlot,
@@ -190,5 +206,10 @@ void setThreadName(tcb_t *thread, const char *name);
 #endif /* CONFIG_DEBUG_BUILD */
 
 void Arch_setTCBIPCBuffer(tcb_t *thread, word_t bufferAddr);
+
+#if CONFIG_NUM_CRITICALITIES > 1
+exception_t decodeSetMCCriticality(cap_t cap, word_t length, word_t *buffer);
+exception_t decodeSetCriticality(cap_t cap, word_t length, word_t *buffer);
+#endif
 
 #endif

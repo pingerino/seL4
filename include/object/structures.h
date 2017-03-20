@@ -235,10 +235,10 @@ struct tcb {
     lookup_fault_t tcbLookupFailure;
 
     /* Domain, 1 byte (packed to 4) */
-    dom_t tcbDomain;
+    uint8_t tcbDomain;
 
     /*  maximum controlled priorioty, 1 byte (packed to 4) */
-    prio_t tcbMCP;
+    uint8_t tcbMCP;
 
     /* Priority, 1 byte (packed to 4) */
     prio_t tcbPriority;
@@ -260,6 +260,17 @@ struct tcb {
 
 #ifdef CONFIG_BENCHMARK_TRACK_UTILISATION
     benchmark_util_t benchmark;
+#endif
+
+#if CONFIG_NUM_CRITICALITIES > 1
+    /* Previous and next pointers for criticality queues 8 bytes */
+    struct tcb* tcbCritPrev;
+    struct tcb* tcbCritNext;
+    /* criticality level of this tcb */
+    uint8_t tcbCrit;
+    /* maximum controlled criticality of this tcb */
+    uint8_t tcbMCC;
+    uint8_t tcbBasePriority;
 #endif
 
 #ifdef CONFIG_DEBUG_BUILD

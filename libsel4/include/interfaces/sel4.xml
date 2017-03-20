@@ -343,7 +343,18 @@
                 description="Number of instructions to step over before delivering a fault to the target thread's fault endpoint. Setting this to 0 disables single-stepping."/>
             <param dir="out" name="bp_was_consumed" type="seL4_Bool"/>
         </method>
-
+        <method id="TCBSetCriticality" name="SetCriticality" manual_name="Set Criticality"
+            manual_label="tcb_setcriticality" condition="CONFIG_NUM_CRITICALITIES > 1">
+            <brief>Change a thread's criticality.</brief>
+            <description>TODO</description>
+            <param dir="in" name="criticality" type="seL4_Uint8"/>
+        </method>
+        <method id="TCBSetMCCriticality" name="SetMCCriticality" manual_name="SetMCCriticality"
+            manual_label="tcb_setmccriticality">
+            <brief>Change a thread's maximum controlled criticality.</brief>
+            <description>TODO</description>
+            <param dir="in" name="mcc" type="seL4_Uint8"/>
+        </method>
     </interface>
 
     <interface name="seL4_CNode" manual_name="CNode">
@@ -565,7 +576,12 @@
             <param dir="in" name="badge" type="seL4_Word"
                 description="Identifier for this scheduling context. Delivered to timeout exception handler. Can be used to determine which scheduling context triggered the timeout." />
         </method>
-
+        <method id="SchedControlSetCriticality" name="SetCriticality" manual_name="Set Criticality"
+            manual_label="schedcontrol_setcriticality" condition="CONFIG_NUM_CRITICALITIES > 1">
+            <brief>Set the system criticality level.</brief>
+            <description>TODO</description>
+            <param dir="in" name="criticality" type="seL4_Uint32" />
+        </method>
     </interface>
 
     <interface name="seL4_SchedContext">

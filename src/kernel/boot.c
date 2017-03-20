@@ -385,6 +385,10 @@ create_sched_context(tcb_t *tcb, ticks_t timeslice)
     refill_new(tcb->tcbSchedContext, MIN_REFILLS, timeslice, 0);
 
     tcb->tcbSchedContext->scTcb = tcb;
+
+#if CONFIG_NUM_CRITICALITIES > 1
+    tcb->tcbCrit = seL4_MinCrit;
+#endif
     return true;
 }
 
@@ -506,6 +510,10 @@ create_initial_thread(
 
     tcb->tcbPriority = seL4_MaxPrio;
     tcb->tcbMCP = seL4_MaxPrio;
+#if CONFIG_NUM_CRITICALITIES > 1
+    tcb->tcbCrit = seL4_MinCrit;
+    tcb->tcbMCC = seL4_MaxCrit;
+#endif
     setThreadState(tcb, ThreadState_Running);
     ksCurDomain = ksDomSchedule[ksDomScheduleIdx].domain;
     ksDomainTime = usToTicks(ksDomSchedule[ksDomScheduleIdx].length * US_IN_MS);
@@ -547,6 +555,9 @@ init_core_state(tcb_t *scheduler_action)
     NODE_STATE(ksReprogram) = true;
     NODE_STATE(ksReleaseHead) = NULL;
     NODE_STATE(ksCurTime) = getCurrentTime();
+#if CONFIG_NUM_CRITICALITIES > 1
+    NODE_STATE(ksCriticality) = seL4_MinCrit;
+#endif /* CONFIG_NUM_CRITICALITIES */
 }
 
 BOOT_CODE static bool_t
