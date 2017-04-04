@@ -16,36 +16,20 @@
 #include <basic_types.h>
 #include <arch/linker.h>
 
+/* see tools/reciprocal.py for calculation of this value */
+#define CLK_MAGIC 6603673441llu
+#define CLK_SHIFT 41llu
+
+#define TIMER_CLOCK_HZ     333000000llu
+
 static inline CONST time_t
 getKernelWcetUs(void)
 {
-    fail(!"Not implemented");
+    return 10u;
 }
 
-static inline CONST ticks_t
-getTimerPrecision(void)
-{
-    fail(!"Not implemented");
-    return 0llu;
-}
+/* we use the cortex-a9 global timer on this platform */
+#include <arch/machine/global_timer.h>
 
-static inline ticks_t
-getCurrentTime(void)
-{
-    fail(!"Not implemented");
-    return 0llu;
-}
-
-static inline void
-setDeadline(ticks_t deadline)
-{
-    fail(!"Not implemented");
-}
-
-static inline void
-ackDeadlineIRQ(void)
-{
-    fail(!"Not implemented");
-}
-
+compile_assert(magic_will_work, TIMER_CLOCK_MHZ == 333llu)
 #endif /* __PLAT_MACHINE_TIMER_H */
