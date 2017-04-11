@@ -12,6 +12,7 @@
 #define __ARCH_FASTPATH_H
 
 #include <mode/fastpath/fastpath.h>
+#include <plat/machine.h>
 
 static inline int
 fastpath_reply_cap_check(cap_t cap)
@@ -22,10 +23,16 @@ fastpath_reply_cap_check(cap_t cap)
 void slowpath(syscall_t syscall)
 NORETURN;
 
+void slowpath_irq(irq_t irq)
+NORETURN;
+
 void fastpath_call(word_t cptr, word_t r_msgInfo)
 NORETURN;
 
 void fastpath_reply_recv(word_t cptr, word_t r_msgInfo)
+NORETURN;
+
+void fastpath_irq(irq_t irq)
 NORETURN;
 
 #endif

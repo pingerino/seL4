@@ -20,7 +20,7 @@
 #include <api/debug.h>
 
 exception_t handleSyscall(syscall_t syscall);
-exception_t handleInterruptEntry(void);
+exception_t handleInterruptEntry(irq_t irq) VISIBLE;
 exception_t handleUnknownSyscall(word_t w);
 exception_t handleUserLevelFault(word_t w_a, word_t w_b);
 exception_t handleVMFaultEvent(vm_fault_type_t vm_faultType);
