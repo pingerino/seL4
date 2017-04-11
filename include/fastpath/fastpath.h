@@ -109,6 +109,19 @@ thread_state_get_replyObject_np(thread_state_t ts)
 #endif
 }
 
+static inline void
+notification_ptr_set_ntfnQueue_head_np(notification_t *ntfn_ptr, word_t ntfnQueue_head)
+{
+    ntfn_ptr->words[1] = ntfnQueue_head;
+}
+
+static inline void
+notification_ptr_mset_ntfnQueue_tail_state(notification_t *ntfn_ptr, word_t ntfnQueue_tail,
+                                     word_t state)
+{
+    ntfn_ptr->words[0] = ntfnQueue_tail | state;
+}
+
 #include <arch/fastpath/fastpath.h>
 
 #endif

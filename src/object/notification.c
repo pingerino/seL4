@@ -39,13 +39,6 @@ ntfn_ptr_set_queue(notification_t *ntfnPtr, tcb_queue_t ntfn_queue)
 }
 
 static inline void
-ntfn_set_active(notification_t *ntfnPtr, word_t badge)
-{
-    notification_ptr_set_state(ntfnPtr, NtfnState_Active);
-    notification_ptr_set_ntfnMsgIdentifier(ntfnPtr, badge);
-}
-
-static inline void
 maybeDonateSchedContext(tcb_t *tcb, notification_t *ntfnPtr)
 {
     if (tcb->tcbSchedContext == NULL) {

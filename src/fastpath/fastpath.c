@@ -407,3 +407,175 @@ fastpath_reply_recv(word_t cptr, word_t msgInfo, word_t reply)
 
     fastpath_restore(badge, msgInfo, NODE_STATE(ksCurThread));
 }
+
+static inline void
+mask_ack_bail(irq_t irq)
+{
+    maskInterrupt(true, irq);
+    ackInterrupt(irq);
+    restore_user_context();
+}
+
+void
+fastpath_irq(irq_t irq)
+{
+    /* check the irq is valid */
+    if (unlikely(irq == irqInvalid)) {
+        if (config_set(CONFIG_IRQ_REPORTING)) {
+            printf("Spurious interrupt\n");
+        }
+        handleSpuriousIRQ();
+        restore_user_context();
+        UNREACHABLE();
+    }
+
+    if (unlikely(irq > maxIRQ)) {
+        mask_ack_bail(irq);
+        UNREACHABLE();
+    }
+
+    if (unlikely(intStateIRQTable[irq] != IRQSignal)) {
+        slowpath_irq(irq);
+        UNREACHABLE();
+    }
+
+    cap_t ntfn_cap = intStateIRQNode[irq].cap;
+    if (unlikely(cap_get_capType(ntfn_cap) != cap_notification_cap ||
+                !cap_notification_cap_get_capNtfnCanSend(ntfn_cap))) {
+        if (config_set(CONFIG_IRQ_REPORTING)) {
+            printf("Undelivered irq: %d\n", (int) irq);
+        }
+        mask_ack_bail(irq);
+        UNREACHABLE();
+    }
+
+    notification_t *ntfn_ptr = NTFN_PTR(cap_notification_cap_get_capNtfnPtr(ntfn_cap));
+    notification_state_t ntfn_state = notification_ptr_get_state(ntfn_ptr);
+    word_t badge = cap_notification_cap_get_capNtfnBadge(ntfn_cap);
+
+    tcb_t *dest = NULL;
+    if (ntfn_state == NtfnState_Waiting) {
+        dest = TCB_PTR(notification_ptr_get_ntfnQueue_head(ntfn_ptr));
+    } else if (notification_ptr_get_ntfnBoundTCB(ntfn_ptr)) {
+        dest = TCB_PTR(notification_ptr_get_ntfnBoundTCB(ntfn_ptr));
+#ifdef CONFIG_VTX
+        if (unlikely(thread_state_ptr_get_tsType(dest->tcbState) == ThreadState_RunningVM)) {
+            slowpath_irq(irq);
+            UNREACHABLE();
+        }
+#endif
+    } else {
+        ntfn_set_active(ntfn_ptr, badge | notification_ptr_get_ntfnMsgIdentifier(ntfn_ptr));
+        mask_ack_bail(irq);
+        UNREACHABLE();
+    }
+
+    /* at this point we know we're going to have to switch threads */
+    assert(dest != NULL);
+
+    /* check dest has a scheduling context */
+    if (dest->tcbSchedContext == NULL || dest->tcbSchedContext->scRefillMax == 0) {
+        slowpath_irq(irq);
+        UNREACHABLE();
+    }
+
+#ifdef CONFIG_ENABLE_SMP
+    if (dest->tcbAffinity != getCurrentCPUID()) {
+        slowpath_irq(irq);
+        UNREACHABLE();
+    }
+#endif
+
+    cap_t newVTable = TCB_PTR_CTE_PTR(dest, tcbVTable)->cap;
+#ifndef CONFIG_ARCH_AARCH32
+    vspace_root_t *cap_pd;
+#else
+    pde_t *cap_pd;
+#endif
+    cap_pd = cap_vtable_cap_get_vspace_root_fp(newVTable);
+
+    if (unlikely(!isValidVTableRoot_fp(newVTable))) {
+        slowpath_irq(irq);
+        UNREACHABLE();
+    }
+
+    pde_t stored_hw_asid;
+
+#ifdef CONFIG_ARCH_X86_64
+    stored_hw_asid.words[0] = cap_pml4_cap_get_capPML4MappedASID(newVTable);
+#endif
+
+#ifdef CONFIG_ARCH_AARCH64
+    stored_hw_asid.words[0] = cap_page_global_directory_cap_get_capPGDMappedASID(newVTable);
+#endif
+
+#ifdef CONFIG_ARCH_AARCH32
+    /* Get HW ASID */
+    stored_hw_asid = cap_pd[PD_ASID_SLOT];
+    if (unlikely(!pde_pde_invalid_get_stored_asid_valid(stored_hw_asid))) {
+        slowpath_irq(irq);
+        UNREACHABLE();
+    }
+#endif
+
+    /* --- POINT OF NO RETURN -- */
+    switch (ntfn_state) {
+    case NtfnState_Active:
+    case NtfnState_Idle:
+        if (thread_state_get_tsType(dest->tcbState) == ThreadState_BlockedOnReceive) {
+            endpoint_t *ep_ptr = EP_PTR(thread_state_get_blockingObject(dest->tcbState));
+            endpoint_ptr_set_epQueue_head_np(ep_ptr, TCB_REF(dest->tcbEPNext));
+            if (unlikely(dest->tcbEPNext)) {
+                dest->tcbEPNext->tcbEPPrev = NULL;
+            } else {
+                endpoint_ptr_mset_epQueue_tail_state(ep_ptr, 0, EPState_Idle);
+            }
+
+            setRegister(dest, badgeRegister, badge);
+            thread_state_ptr_set_tsType_np(&dest->tcbState, ThreadState_Running);
+        } else {
+            ntfn_set_active(ntfn_ptr, badge);
+            mask_ack_bail(irq);
+            UNREACHABLE();
+        }
+        break;
+    case NtfnState_Waiting:
+        notification_ptr_set_ntfnQueue_head_np(ntfn_ptr, TCB_REF(dest->tcbEPNext));
+        if (unlikely(dest->tcbEPNext)) {
+            dest->tcbEPNext->tcbEPPrev = NULL;
+        } else {
+            notification_ptr_mset_ntfnQueue_tail_state(ntfn_ptr, 0, NtfnState_Idle);
+        }
+        setRegister(dest, badgeRegister, badge);
+        thread_state_ptr_set_tsType_np(&dest->tcbState, ThreadState_Running);
+        break;
+    }
+
+    if (dest->tcbPriority > NODE_STATE(ksCurThread)->tcbPriority) {
+        /* we're going to switch threads - charge the current thread */
+        updateTimestamp(false);
+        ticks_t prev = getNextInterrupt();
+        /* charge the previous thread */
+        if (checkBudget()) {
+            commitTime();
+        }
+
+        if (isSchedulable(NODE_STATE(ksCurThread))) {
+            SCHED_ENQUEUE_CURRENT_TCB;
+        }
+        switchToThread_fp(dest, cap_pd, stored_hw_asid);
+        /* only set the next irq if we really have to */
+        ticks_t next = getNextInterrupt();
+        if (next < prev) {
+            setDeadline(next - getTimerPrecision());
+        }
+        /* update sc */
+        NODE_STATE(ksCurSC) = NODE_STATE(ksCurThread)->tcbSchedContext;
+    } else {
+        assert(isSchedulable(dest));
+        tcbSchedEnqueue(dest);
+    }
+
+    mask_ack_bail(irq);
+    UNREACHABLE();
+}

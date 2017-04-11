@@ -91,6 +91,15 @@ isHighestPrio(word_t dom, prio_t prio)
 }
 
 static inline bool_t PURE
+isSchedulable(const tcb_t *thread)
+{
+    return isRunnable(thread) &&
+           thread->tcbSchedContext != NULL &&
+           thread->tcbSchedContext->scRefillMax > 0 &&
+           !thread_state_get_tcbInReleaseQueue(thread->tcbState);
+}
+
+static inline bool_t PURE
 isRoundRobin(sched_context_t *sc)
 {
     return sc->scPeriod == 0;
@@ -304,4 +313,18 @@ void awaken(void);
  * of periodic threads waiting for budget recharge */
 void postpone(sched_context_t *sc);
 
+static inline ticks_t getNextInterrupt(void) {
+    ticks_t next_interrupt = NODE_STATE(ksCurTime) +
+                             REFILL_HEAD(NODE_STATE(ksCurThread)->tcbSchedContext).rAmount;
+
+    if (CONFIG_NUM_DOMAINS > 1) {
+        next_interrupt = MIN(next_interrupt, NODE_STATE(ksCurTime) + ksDomainTime);
+    }
+
+    if (NODE_STATE(ksReleaseHead) != NULL) {
+        next_interrupt = MIN(REFILL_HEAD(NODE_STATE(ksReleaseHead)->tcbSchedContext).rTime, next_interrupt);
+    }
+
+    return next_interrupt;
+}
 #endif

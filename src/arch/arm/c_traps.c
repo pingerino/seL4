@@ -97,7 +97,8 @@ c_handle_instruction_fault(void)
 void VISIBLE NORETURN
 c_handle_interrupt(void)
 {
-    NODE_LOCK_IRQ_IF(getActiveIRQ() != irq_remote_call_ipi);
+    irq_t irq = getActiveIRQ();
+    NODE_LOCK_IRQ_IF(irq != irq_remote_call_ipi);
     c_entry_hook();
 
 #ifdef TRACK_KERNEL_ENTRIES
@@ -105,7 +106,12 @@ c_handle_interrupt(void)
     ksKernelEntry.word = getActiveIRQ();
 #endif
 
-    handleInterruptEntry();
+    fastpath_irq(irq);
+}
+
+void VISIBLE NORETURN
+slowpath_irq(irq_t irq) {
+    handleInterruptEntry(irq);
     restore_user_context();
 }
 

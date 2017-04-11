@@ -35,25 +35,16 @@
  * for each event causing a kernel entry */
 
 exception_t
-handleInterruptEntry(void)
+handleInterruptEntry(irq_t irq)
 {
-    irq_t irq;
-
-    irq = getActiveIRQ();
     if (SMP_TERNARY(clh_is_self_in_queue(), 1)) {
         updateTimestamp(false);
         checkBudget();
     }
 
-    if (irq != irqInvalid) {
-        handleInterrupt(irq);
-        Arch_finaliseInterrupt();
-    } else {
-#ifdef CONFIG_IRQ_REPORTING
-        userError("Spurious interrupt!");
-#endif
-        handleSpuriousIRQ();
-    }
+    assert(irq != irqInvalid);
+    handleInterrupt(irq);
+    Arch_finaliseInterrupt();
 
     if (SMP_TERNARY(clh_is_self_in_queue(), 1)) {
         schedule();
