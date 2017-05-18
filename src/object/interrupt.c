@@ -201,7 +201,6 @@ handleInterrupt(irq_t irq)
     case IRQSignal: {
         cap_t cap;
 
-        updateTimestamp(false);
         cap = intStateIRQNode[irq].cap;
 
         if (cap_get_capType(cap) == cap_notification_cap &&
@@ -214,29 +213,17 @@ handleInterrupt(irq_t irq)
 #endif
         }
         maskInterrupt(true, irq);
-        /* Bill the current thread. */
-        if (unlikely(checkBudget())) {
-            commitTime();
-        }
         break;
     }
 
     case IRQTimer:
-        updateTimestamp(false);
         ackDeadlineIRQ();
-        if (likely(checkBudget())) {
-            commitTime();
-        }
         NODE_STATE(ksReprogram) = true;
         break;
 
 #ifdef ENABLE_SMP_SUPPORT
     case IRQIPI:
-        updateTimestamp(false);
         handleIPI(irq, true);
-        if (unlikely(checkBudget())) {
-            commitTime();
-        }
         break;
 #endif /* ENABLE_SMP_SUPPORT */
 
