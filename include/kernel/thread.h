@@ -105,6 +105,10 @@ commitTime(void)
 static inline void
 rollbackTime(void)
 {
+    /* it is invalid to rollback time if we
+     * have already acted on the new time */
+    assert(!NODE_STATE(ksReprogram) || NODE_STATE(ksConsumed) == 0);
+
     NODE_STATE(ksCurTime) -= NODE_STATE(ksConsumed);
     NODE_STATE(ksConsumed) = 0llu;
 }
@@ -201,7 +205,7 @@ checkBudget(void)
 	if (likely(capacity >= MIN_BUDGET && (isRoundRobin(NODE_STATE(ksCurSC)) ||
                     !refill_full(NODE_STATE(ksCurSC))))) {
         if (unlikely(isCurDomainExpired())) {
-            commitTime();
+            NODE_STATE(ksReprogram) = true;
             rescheduleRequired();
             return false;
         }
