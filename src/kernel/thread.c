@@ -314,9 +314,7 @@ schedule(void)
 {
     word_t action;
 
-    if (NODE_STATE(ksReprogram)) {
-        awaken();
-    }
+    awaken();
 
     action = (word_t)NODE_STATE(ksSchedulerAction);
     if (action == (word_t)SchedulerAction_ChooseNewThread) {
@@ -592,7 +590,7 @@ rescheduleRequired(void)
 void
 awaken(void)
 {
-    while (NODE_STATE(ksReleaseHead) != NULL && refill_ready(NODE_STATE(ksReleaseHead)->tcbSchedContext)) {
+    while (unlikely(NODE_STATE(ksReleaseHead) != NULL && refill_ready(NODE_STATE(ksReleaseHead)->tcbSchedContext))) {
         tcb_t *awakened = tcbReleaseDequeue();
         /* the currently running thread cannot have just woken up */
         assert(awakened != NODE_STATE(ksCurThread));
