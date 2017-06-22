@@ -121,7 +121,8 @@ debug_printTCB(tcb_t *tcb)
         fail("Unknown thread state");
     }
 
-    printf("%15s\t%p\t%20lu\n", state, (void *) getRestartPC(tcb), tcb->tcbPriority);
+    printf("%15s\t%p\t%20lu\t%lu\n", state, (void *) getRestartPC(tcb), tcb->tcbPriority,
+           (word_t) thread_state_get_tcbInReleaseQueue(tcb->tcbState));
 }
 
 static inline void
