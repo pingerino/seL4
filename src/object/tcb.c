@@ -1030,11 +1030,6 @@ decodeTCBConfigure(cap_t cap, word_t length, cte_t* slot,
     }
 
     /* fault handler */
-    dc_ret = deriveCap(fhSlot, fhCap);
-    if (dc_ret.status != EXCEPTION_NONE) {
-        return dc_ret.status;
-    }
-    fhCap = dc_ret.cap;
     if (!validFaultHandler(fhCap)) {
         userError("TCB Configure: fault endpoint cap invalid.");
         current_syscall_error.invalidCapNumber = 1;
@@ -1042,11 +1037,6 @@ decodeTCBConfigure(cap_t cap, word_t length, cte_t* slot,
     }
 
     /* timeout handler */
-    dc_ret = deriveCap(thSlot, thCap);
-    if (dc_ret.status != EXCEPTION_NONE) {
-        return dc_ret.status;
-    }
-    thCap = dc_ret.cap;
     if (!validFaultHandler(thCap)) {
         userError("TCB Configure: timeout endpoint cap invalid.");
         current_syscall_error.invalidCapNumber = 2;
@@ -1249,12 +1239,6 @@ decodeSetSpace(cap_t cap, word_t length, cte_t* slot,
         return EXCEPTION_SYSCALL_ERROR;
     }
 
-    /* fault handler */
-    dc_ret = deriveCap(fhSlot, fhCap);
-    if (dc_ret.status != EXCEPTION_NONE) {
-        return dc_ret.status;
-    }
-    fhCap = dc_ret.cap;
     if (!validFaultHandler(fhCap)) {
         userError("TCB SetSpace: fault endpoint cap invalid.");
         current_syscall_error.invalidCapNumber = 1;
@@ -1262,11 +1246,6 @@ decodeSetSpace(cap_t cap, word_t length, cte_t* slot,
     }
 
     /* timeout handler */
-    dc_ret = deriveCap(thSlot, thCap);
-    if (dc_ret.status != EXCEPTION_NONE) {
-        return dc_ret.status;
-    }
-    thCap = dc_ret.cap;
     if (!validFaultHandler(thCap)) {
         userError("TCB SetSpace: timeout endpoint cap invalid.");
         current_syscall_error.invalidCapNumber = 2;
