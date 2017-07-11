@@ -88,6 +88,8 @@ setDeadline(ticks_t deadline)
 static inline void
 ackDeadlineIRQ(void)
 {
+    /* disable cmp */
+    globalTimer->control &= ~(BIT(COMP_ENABLE));
     /* ack the isr */
     globalTimer->isr = 1;
 }
