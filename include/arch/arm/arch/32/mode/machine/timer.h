@@ -67,7 +67,7 @@ static inline CONST ticks_t
 usToTicks(time_t us)
 {
     if (USE_KHZ) {
-        /* use Khz - mhz not preceise enough */
+        /* use Khz - mhz not precise enough */
         return (us * TIMER_CLOCK_KHZ) * KHZ_IN_HZ_MAGIC >> KHZ_IN_HZ_SHIFT;
     } else {
         return us * TIMER_CLOCK_MHZ;
