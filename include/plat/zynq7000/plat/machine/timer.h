@@ -17,8 +17,8 @@
 #include <arch/linker.h>
 
 /* see tools/reciprocal.py for calculation of this value */
-#define CLK_MAGIC 3301836720llu
-#define CLK_SHIFT 40llu
+#define CLK_MAGIC 6603673441llu
+#define CLK_SHIFT 41llu
 
 #define TIMER_CLOCK_HZ     333000000llu
 
