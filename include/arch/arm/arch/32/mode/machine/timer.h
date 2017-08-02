@@ -62,6 +62,7 @@ getMaxTicksToUs(void)
         return UINT64_MAX / CLK_MAGIC;
     }
 }
+
 static inline CONST ticks_t
 usToTicks(time_t us)
 {
