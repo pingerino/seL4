@@ -415,7 +415,7 @@ remoteTCBStall(tcb_t *tcb)
         ARCH_NODE_STATE(ipiReschedulePending) |= BIT(tcb->tcbSchedContext->scCore);
     }
 }
-
+#endif /* ENABLE_SMP_SUPPORT */
 #ifdef CONFIG_HARDWARE_DEBUG_API
 static exception_t
 invokeConfigureSingleStepping(word_t *buffer, tcb_t *t,
