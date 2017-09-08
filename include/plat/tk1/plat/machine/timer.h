@@ -34,7 +34,7 @@ getTimerPrecision(void)
 CONST static inline time_t
 getKernelWcetUs(void)
 {
-    return 10u;
+    return 100u;
 }
 
 static inline BOOT_CODE void
