@@ -20,10 +20,6 @@
 #define KHZ_IN_HZ_MAGIC 274877907u
 #define KHZ_IN_HZ_SHIFT 38u
 
-#if (TIMER_RELOAD >= 0xFFFFFFFF)
-#error "Timer reload too high"
-#endif
-
 /* ARM generic timer implementation */
 
 /* Use Hypervisor Physical timer */
