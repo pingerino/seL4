@@ -318,11 +318,6 @@ add_sources(
 )
 
 add_sources(
-    DEP "KernelArmCortexA9;NOT KernelPlatformExynos4"
-    CFILES src/arch/arm/machine/priv_timer.c
-)
-
-add_sources(
     DEP "KernelArmCortexA15 OR KernelArmCortexA7 OR KernelArmCortexA57 OR KernelArmCortexA9 OR KernelPlatformHikey"
     CFILES src/arch/arm/machine/gic_pl390.c
 )
