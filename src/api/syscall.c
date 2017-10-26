@@ -143,6 +143,7 @@ handleUnknownSyscall(word_t w)
         benchmark_log_utilisation_enabled = true;
         NODE_STATE(ksIdleThread)->benchmark.utilisation = 0;
         NODE_STATE(ksCurThread)->benchmark.schedule_start_time = ksEnter;
+        NODE_STATE(ksIdleThread)->benchmark.schedule_start_time = ksEnter;
         benchmark_start_time = ksEnter;
         benchmark_arch_utilisation_reset();
 #endif /* CONFIG_BENCHMARK_TRACK_UTILISATION */

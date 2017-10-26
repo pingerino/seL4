@@ -38,6 +38,9 @@ switchToThread_fp(tcb_t *thread, vspace_root_t *vroot, pde_t stored_hw_asid)
 {
     asid_t asid = (asid_t)(stored_hw_asid.words[0] & 0xffff);
 
+#ifdef CONFIG_BENCHMARK_TRACK_UTILISATION
+    benchmark_utilisation_switch(NODE_STATE(ksCurThread), thread);
+#endif
     armv_contextSwitch(vroot, asid);
     writeTPIDRURO(thread->tcbIPCBuffer);
 

@@ -55,6 +55,9 @@ switchToThread_fp(tcb_t *thread, vspace_root_t *vroot, pde_t stored_hw_asid)
         setCurrentVSpaceRoot(new_vroot, asid);
     }
 
+#ifdef CONFIG_BENCHMARK_TRACK_UTILISATION
+    benchmark_utilisation_switch(NODE_STATE(ksCurThread), thread);
+#endif
 #ifdef ENABLE_SMP_SUPPORT
     asm volatile("movq %[value], %%gs:%c[offset]"
                  :
