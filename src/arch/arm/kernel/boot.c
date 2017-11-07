@@ -273,8 +273,58 @@ init_cpu(void)
     /* Export selected CPU features for access by PL0 */
     armv_init_user_access();
 
+
     initTimer();
 
+
+#ifdef MEASURE_TIMER
+    /* read the time */
+#include <arch/benchmark.h>
+#define RUNS 102
+    uint32_t results[RUNS];
+    uint32_t start;
+    for (int j = 0; j < RUNS; j++) {
+        start = timestamp();
+        results[j] = timestamp() - start;
+    }
+
+    printf("Read the cycle counter");
+    for (int i = 0; i < RUNS; i++) {
+        printf("%u\n", results[i]);
+    }
+
+    /* read the time */
+    for (int j = 0; j < RUNS; j++) {
+        uint32_t start = timestamp();
+        NODE_STATE(ksCurTime) = getCurrentTime();
+        results[j] = timestamp() - start;
+        /* waste some time */
+        for (int i = 0; i < 10; i++) {
+            timestamp();
+        }
+    }
+
+    printf("Read the time\n");
+    for (int i = 0; i < RUNS; i++) {
+        printf("%u\n", results[i]);
+    }
+
+    /* set a timestamp */
+    for (int j = 0; j < RUNS; j++) {
+        uint32_t start = timestamp();
+        setDeadline(UINT32_MAX);
+        results[j] = timestamp() - start;
+        /* waste some time */
+        for (int i = 0; i < 10; i++) {
+            timestamp();
+        }
+    }
+
+    printf("Set timeout\n");
+    for (int i = 0; i < RUNS; i++) {
+        printf("%u\n", results[i]);
+    }
+#endif
     return true;
 }
 

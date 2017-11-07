@@ -445,6 +445,56 @@ init_sys_state(
     ndks_boot.bi_frame->archInfo = tsc_init();
     NODE_STATE(ksCurTime) = getCurrentTime();
 
+#ifdef MEASURE_TIMER
+#include <arch/benchmark.h>
+
+    /* read the time */
+#define RUNS 102
+    word_t results[RUNS];
+    word_t start;
+    for (int j = 0; j < RUNS; j++) {
+        start = timestamp();
+        results[j] = timestamp() - start;
+    }
+
+    printf("Read the cycle counter");
+    for (int i = 0; i < RUNS; i++) {
+        printf("%lu\n", results[i]);
+    }
+
+    /* read the time */
+    for (int j = 0; j < RUNS; j++) {
+        start = timestamp();
+        NODE_STATE(ksCurTime) = getCurrentTime();
+        results[j] = timestamp() - start;
+        /* waste some time */
+        for (int i = 0; i < 10; i++) {
+            timestamp();
+        }
+    }
+
+    printf("Read the time\n");
+    for (int i = 0; i < RUNS; i++) {
+        printf("%lu\n", results[i]);
+    }
+
+    /* set a timestamp */
+    for (int j = 0; j < RUNS; j++) {
+        start = timestamp();
+        setDeadline(UINT32_MAX);
+        results[j] = timestamp() - start;
+        /* waste some time */
+        for (int i = 0; i < 10; i++) {
+            timestamp();
+        }
+    }
+
+    printf("Set timeout\n");
+    for (int i = 0; i < RUNS; i++) {
+        printf("%lu\n", results[i]);
+    }
+#endif
+
     /* create the idle thread */
     if (!create_idle_thread()) {
         return false;
