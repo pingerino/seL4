@@ -18,8 +18,10 @@
 #include <util.h>
 
 #define CNT_TVAL "cntv_tval_el0"
+#define CNT_CVAL "cntv_cval_el0"
 #define CNT_CTL  "cntv_ctl_el0"
 #define CNTFRQ   "cntfrq_el0"
+#define CNT_CT   "cntpct_el0"
 
 /* timer function definitions that work for all 32bit arm platforms that provide
  * CLK_MAGIC and TIMER_CLOCK_MHZ -- these definitions might need to move
