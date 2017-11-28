@@ -463,12 +463,11 @@ setActivePriority(tcb_t *tptr)
     switch (thread_state_get_tsType(tptr->tcbState)) {
     case ThreadState_Running:
     case ThreadState_Restart:
-    case ThreadState_YieldTo:
         if (isSchedulable(tptr)) {
             if (tptr == NODE_STATE(ksCurThread)) {
                 rescheduleRequired();
             } else {
-				switchIfRequiredTo(tptr);
+				possibleSwitchTo(tptr);
 			}
         }
         break;
