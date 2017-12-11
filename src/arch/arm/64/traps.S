@@ -163,6 +163,7 @@ el0_svc:
 
     lsp_i   x19
     mov     x2, x7
+    mov     x3, x6
     b       c_handle_syscall
 
 el0_enfp:
