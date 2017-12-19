@@ -432,7 +432,7 @@ fastpath_irq(irq_t irq)
     assert(dest != NULL);
 
 #if CONFIG_MAX_NUM_NODES > 1
-    if (dest->tcbAffinity != getCurrentCPU()) {
+    if (dest->tcbAffinity != getCurrentCPUIndex()) {
         slowpath_irq(irq);
         UNREACHABLE();
     }
