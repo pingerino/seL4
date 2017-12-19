@@ -531,7 +531,7 @@ fastpath_signal(word_t cptr)
     notification_state_t ntfn_state;
 
     /* get message info and fault type */
-    fault_type = seL4_Fault_get_seL4_FaultType(ksCurThread->tcbFault);
+    fault_type = seL4_Fault_get_seL4_FaultType(NODE_STATE(ksCurThread)->tcbFault);
 
     /* check there's no saved fault */
     if (unlikely(fault_type != seL4_Fault_NullFault)) {
@@ -539,7 +539,7 @@ fastpath_signal(word_t cptr)
     }
 
     /* lookup the cap */
-    ntfn_cap = lookup_fp(TCB_PTR_CTE_PTR(ksCurThread, tcbCTable)->cap, cptr);
+    ntfn_cap = lookup_fp(TCB_PTR_CTE_PTR(NODE_STATE(ksCurThread), tcbCTable)->cap, cptr);
 
     /* check it's a notification object */
     if (unlikely(!cap_capType_equals(ntfn_cap, cap_notification_cap))) {
@@ -562,7 +562,7 @@ fastpath_signal(word_t cptr)
 
     /* if the target is higher prio we'll need to invoke the scheduler,
      * this fastpath only fastpaths signal where we don't change threads */
-    if (unlikely(dest && dest->tcbPriority > ksCurThread->tcbPriority)) {
+    if (unlikely(dest && dest->tcbPriority > NODE_STATE(ksCurThread)->tcbPriority)) {
         slowpath(SysSend);
     }
     /* --- POINT OF NO RETURN -- */
@@ -609,9 +609,9 @@ fastpath_signal(word_t cptr)
         break;
     }
 
-    fastpath_restore(getRegister(ksCurThread, badgeRegister),
-                     getRegister(ksCurThread, msgInfoRegister),
-                     ksCurThread);
+    fastpath_restore(getRegister(NODE_STATE(ksCurThread), badgeRegister),
+                     getRegister(NODE_STATE(ksCurThread), msgInfoRegister),
+                     NODE_STATE(ksCurThread));
 }
 
 
