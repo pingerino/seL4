@@ -121,15 +121,15 @@ debug_printTCB(tcb_t *tcb)
         fail("Unknown thread state");
     }
 
-    printf("%15s\t%p\t%20lu\t%lu\n", state, (void *) getRestartPC(tcb), tcb->tcbPriority,
-           (word_t) thread_state_get_tcbInReleaseQueue(tcb->tcbState));
+    printf("%15s\t%p\t%20lu\t%lu\%s\n", state, (void *) getRestartPC(tcb), tcb->tcbPriority,
+           (word_t) thread_state_get_tcbInReleaseQueue(tcb->tcbState), tcb->tcbSchedContext == NULL ? "passive" : "active");
 }
 
 static inline void
 debug_dumpScheduler(void)
 {
     printf("Dumping all tcbs!\n");
-    printf("Name                                    \tState          \tIP                  \t Prio\n");
+    printf("Name                                    \tState          \tIP                  \t Prio \t Passive? \n");
     printf("--------------------------------------------------------------------------------------\n");
     for (tcb_t *curr = NODE_STATE(ksDebugTCBs); curr != NULL; curr = curr->tcbDebugNext) {
         debug_printTCB(curr);

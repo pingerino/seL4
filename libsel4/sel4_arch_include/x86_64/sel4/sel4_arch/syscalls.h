@@ -700,7 +700,6 @@ seL4_BenchmarkGetThreadUtilisation(seL4_Word tcb_cptr)
     seL4_Word unused2 = 0;
     seL4_Word unused3 = 0;
     seL4_Word unused4 = 0;
-    seL4_Word unused5 = 0;
 
     x64_sys_send_recv(seL4_SysBenchmarkGetThreadUtilisation, tcb_cptr, &unused0, 0, &unused1, &unused2, &unused3, &unused3, &unused4, 0);
 }
@@ -713,7 +712,6 @@ seL4_BenchmarkResetThreadUtilisation(seL4_Word tcb_cptr)
     seL4_Word unused2 = 0;
     seL4_Word unused3 = 0;
     seL4_Word unused4 = 0;
-    seL4_Word unused5 = 0;
 
     x64_sys_send_recv(seL4_SysBenchmarkResetThreadUtilisation, tcb_cptr, &unused0, 0, &unused1, &unused2, &unused3, &unused3, &unused4, 0);
 }
