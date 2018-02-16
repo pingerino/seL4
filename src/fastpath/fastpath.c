@@ -481,7 +481,7 @@ fastpath_irq(irq_t irq)
     }
 
 #ifdef CONFIG_ENABLE_SMP
-    if (dest->tcbAffinity != getCurrentCPUID()) {
+    if (dest->tcbAffinity != getCurrentCPUIndex()) {
         slowpath_irq(irq);
         UNREACHABLE();
     }
@@ -630,6 +630,15 @@ fastpath_signal(word_t cptr)
     if (unlikely(dest && dest->tcbPriority > NODE_STATE(ksCurThread)->tcbPriority)) {
         slowpath(SysSend);
     }
+
+#ifdef ENABLE_SMP_SUPPORT
+    /* Ensure both threads have the same affinity */
+    if (unlikely(dest && dest->tcbSchedContext->scCore != getCurrentCPUIndex())) {
+        slowpath(SysSend);
+    }
+#endif /* ENABLE_SMP_SUPPORT */
+
+
     /* --- POINT OF NO RETURN -- */
 
 #ifdef CONFIG_BENCHMARK_TRACK_KERNEL_ENTRIES
