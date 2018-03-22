@@ -170,7 +170,7 @@ init_irqs(cap_t root_cnode_cap)
 #ifdef CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT
 #ifdef KERNEL_PMU_IRQ
     setIRQState(IRQReserved, KERNEL_PMU_IRQ);
-#ifdef CONFIG_PLAT_TX1 && ENABLE_SMP_SUPPORT
+#if (defined CONFIG_PLAT_TX1 && defined ENABLE_SMP_SUPPORT)
 //SELFOUR-1252
 #error "This platform doesn't support tracking CPU utilisation on multicore"
 #endif /* CONFIG_PLAT_TX1 && ENABLE_SMP_SUPPORT */
