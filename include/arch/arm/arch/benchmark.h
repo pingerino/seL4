@@ -26,6 +26,20 @@ timestamp(void)
     SYSTEM_READ_WORD(CCNT, ccnt);
     return ccnt;
 }
+
+#ifdef CONFIG_BENCHMARK_TRACK_UTILISATION
+#ifdef CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT
+extern uint64_t ccnt_num_overflows;
+#endif /* CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT */
+static inline void benchmark_arch_utilisation_reset(void)
+{
+#ifdef CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT
+    ccnt_num_overflows = 0;
+#endif /* CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT */
+}
+#endif /* CONFIG_BENCHMARK_TRACK_UTILISATION */
 #endif /* CONFIG_ENABLE_BENCHMARKS */
+
+
 
 #endif /* ARCH_BENCHMARK_H */

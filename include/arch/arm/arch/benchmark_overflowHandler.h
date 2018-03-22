@@ -23,6 +23,8 @@
 extern bool_t benchmark_log_utilisation_enabled;
 
 #ifdef CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT
+
+extern uint64_t ccnt_num_overflows;
 static inline void handleOverflowIRQ(void)
 {
     if (likely(benchmark_log_utilisation_enabled)) {

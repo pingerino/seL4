@@ -7,7 +7,7 @@
  *
  * @TAG(GD_GPL)
  */
-
+#include <autoconf.h>
 #if CONFIG_MAX_NUM_TRACE_POINTS > 0
 
 #include <benchmark/benchmark.h>
@@ -18,5 +18,8 @@ bool_t ksStarted[CONFIG_MAX_NUM_TRACE_POINTS];
 timestamp_t ksExit;
 seL4_Word ksLogIndex = 0;
 seL4_Word ksLogIndexFinalized = 0;
-
 #endif /* CONFIG_MAX_NUM_TRACE_POINTS > 0 */
+
+#ifdef CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT
+uint64_t ccnt_num_overflows;
+#endif /* CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT */
