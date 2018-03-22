@@ -16,11 +16,18 @@
 #define PMCR_CYCLE_COUNT_RESET BIT(2)
 #define PMCR_EVENT_COUNT_RESET BIT(1)
 #define PMCR_ENABLE BIT(0)
+/* 0 - cycle counter overflow irq on increment that changes bit 31 from 1 to 0
+ * 1 - cycle counter overflow irq on increment that change bit 63 from 1 to 0.
+ */
+#define PMCR_LONG_CYCLE_COUNT BIT(6)
 
 #define PMCNTENSET_CYCLE_COUNT_ENABLE BIT(31)
 
 #define PMUSERENR_EL0_EN BIT(0)
 
 #define CCNT "PMCCNTR_EL0"
+/* clear the cycle count overflow irq */
+#define PMOVSCLR "PMOVSCLR_EL0"
+#define CCNT_OVERFLOW BIT(31)
 
 #endif /* ARMV_BENCHMARK_H */
