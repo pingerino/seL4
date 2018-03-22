@@ -246,7 +246,7 @@ enum IRQConstants {
 #define IRQ_CNODE_BITS      13
 
 #define KERNEL_TIMER_IRQ    INTERRUPT_PPI_11
-
+#define KERNEL_PMU_IRQ      INTERRUPT_CPU0_PMU_INTR
 #include <arch/machine/gic_pl390.h>
 
 #endif  /* ! __PLAT_MACHINE_H */
