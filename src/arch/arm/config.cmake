@@ -241,6 +241,12 @@ add_bf_source_old(
     "include/arch/arm/arch/${KernelWordSize}"
     "mode/machine"
 )
+add_bf_source_old(
+    "KernelArmHypervisorSupport;Kernel64"
+    "gic_v3.bf"
+    "include/arch/arm/arch/${KernelWordSize}"
+    "mode/machine"
+)
 
 include(src/arch/arm/32/config.cmake)
 include(src/arch/arm/64/config.cmake)
