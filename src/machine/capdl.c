@@ -150,7 +150,7 @@ static void sendCNode(word_t address, word_t sizebits)
 
 static void sendIRQNode(void)
 {
-    sendCNode((word_t)intStateIRQNode, 8);
+    sendCNode((word_t)intStateIRQNode, IRQ_CNODE_SLOT_BITS);
 }
 
 static void sendVersion(void)
