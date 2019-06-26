@@ -140,8 +140,9 @@ static void sendCNode(word_t address, word_t sizebits)
         if (cap_get_capType(cap) != cap_null_cap) {
             cte_t *parent = getMDBParent(&start[i]);
             sendWord(i);
-            sendWord(cap.words[0]);
-            sendWord(cap.words[1]);
+            for (word_t i = 0; i < ARRAY_SIZE(cap.words); i++) {
+                sendWord(cap.words[i]);
+            }
             sendWord((word_t)parent);
         }
     }
