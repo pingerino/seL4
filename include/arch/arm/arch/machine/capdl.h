@@ -13,6 +13,4 @@
 
 #define ARCH 0xe0
 
-void capDL(void);
-
 #endif

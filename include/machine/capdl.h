@@ -34,6 +34,7 @@
 
 #define CAPDL_VERSION        0
 
+void capDL(void);
 int getWord(word_t *res);
 void sendWord(word_t word);
 int doArchCommand(unsigned char c, word_t arg);

@@ -11,6 +11,5 @@
 #ifndef __ARCH_MACHINE_CAPDL_H
 #define __ARCH_MACHINE_CAPDL_H
 
-void capDL(void);
 
 #endif
