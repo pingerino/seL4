@@ -20,15 +20,11 @@
 
 #ifdef CONFIG_DEBUG_BUILD
 
-#define PD_READ_SIZE         BIT(PD_INDEX_BITS)
-#define PT_READ_SIZE         BIT(PT_INDEX_BITS)
-#define ASID_POOL_READ_SIZE  BIT(ASID_POOL_INDEX_BITS)
-
 static void sendPD(unsigned int address)
 {
     word_t i, exists;
     pde_t *start = (pde_t *)address;
-    for (i = 0; i < PD_READ_SIZE; i++) {
+    for (i = 0; i < BIT(PD_INDEX_BITS); i++) {
         pde_t pde = start[i];
         exists = 0;
         if (pde_get_pdeType(pde) == pde_pde_coarse && pde_pde_coarse_get_address(pde) != 0) {
@@ -52,7 +48,7 @@ static void sendPT(unsigned int address)
 {
     word_t i, exists;
     pte_t *start = (pte_t *)address;
-    for (i = 0; i < PT_READ_SIZE; i++) {
+    for (i = 0; i < BIT(PT_INDEX_BITS); i++) {
         pte_t pte = start[i];
         exists = 0;
 #ifdef CONFIG_ARM_HYPERVISOR_SUPPORT
@@ -80,7 +76,7 @@ static void sendASIDPool(unsigned int address)
 {
     word_t i;
     pde_t **start = (pde_t **)address;
-    for (i = 0; i < ASID_POOL_READ_SIZE; i++) {
+    for (i = 0; i < BIT(ASID_POOL_INDEX_BITS); i++) {
         pde_t *pde = start[i];
         if (pde != 0) {
             sendWord(i);

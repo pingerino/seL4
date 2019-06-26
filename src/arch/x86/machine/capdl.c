@@ -18,17 +18,12 @@
 
 #ifdef CONFIG_DEBUG_BUILD
 
-#define PD_READ_SIZE         BIT(PD_INDEX_BITS)
-#define PT_READ_SIZE         BIT(PT_INDEX_BITS)
-#define ASID_POOL_READ_SIZE  BIT(ASID_POOL_INDEX_BITS)
-#define IO_PT_READ_SIZE      BIT(VTD_PT_INDEX_BITS)
-
 static void sendPD(unsigned long address)
 {
     unsigned long i;
     unsigned int exists;
     pde_t *start = (pde_t *)address;
-    for (i = 0; i < PD_READ_SIZE; i++) {
+    for (i = 0; i < BIT(PD_INDEX_BITS); i++) {
         pde_t pde = start[i];
         exists = 1;
         if (pde_get_page_size(pde) == pde_pde_pt && (pde_pde_pt_get_pt_base_address(pde) == 0 ||
@@ -49,7 +44,7 @@ static void sendPT(unsigned long address)
 {
     unsigned long i;
     pte_t *start = (pte_t *)address;
-    for (i = 0; i < PT_READ_SIZE; i++) {
+    for (i = 0; i < BIT(PT_INDEX_BITS); i++) {
         pte_t pte = start[i];
         if (pte_get_page_base_address(pte) != 0 && pte_get_present(pte) && pte_get_super_user(pte)) {
             sendWord(i);
@@ -62,7 +57,7 @@ static void sendASIDPool(unsigned long address)
 {
     unsigned long i;
     pde_t **start = (pde_t **)address;
-    for (i = 0; i < ASID_POOL_READ_SIZE; i++) {
+    for (i = 0; i < BIT(ASID_POOL_INDEX_BITS); i++) {
         pde_t *pde = start[i];
         if (pde != 0) {
             sendWord(i);
@@ -76,7 +71,7 @@ static void sendIOPT(unsigned long address, unsigned int level)
 {
     unsigned long i;
     vtd_pte_t *start = (vtd_pte_t *)address;
-    for (i = 0; i < IO_PT_READ_SIZE; i++) {
+    for (i = 0; i < BIT(VTD_PT_INDEX_BITS); i++) {
         vtd_pte_t vtd_pte = start[i];
         if (vtd_pte_get_addr(vtd_pte) != 0) {
             sendWord(i);
