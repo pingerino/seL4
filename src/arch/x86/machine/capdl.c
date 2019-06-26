@@ -138,7 +138,7 @@ int doArchCommand(unsigned char c, word_t arg)
     case IO_PT_COMMAND: {
         /*io pt table */
         unsigned long address = arg;
-        word_t result = getArg32(&level);
+        word_t result = getWord(&level);
         if (result) {
             return result;
             }

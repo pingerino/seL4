@@ -79,34 +79,24 @@ static void putEncodedChar(unsigned char c)
     }
 }
 
-int getArg32(unsigned int *res)
+int getWord(word_t *res)
 {
-    unsigned char b1 = 0;
-    unsigned char b2 = 0;
-    unsigned char b3 = 0;
-    unsigned char b4 = 0;
-    if (getDecodedChar(&b1)) {
-        return 1;
+    for (word_t i = 0; i < seL4_WordBits; i+=8) {
+        unsigned char byte;
+        if (getDecodedChar(&byte)) {
+            return 1;
+        }
+        *res = ((*res) << 8u) + byte;
     }
-    if (getDecodedChar(&b2)) {
-        return 1;
-    }
-    if (getDecodedChar(&b3)) {
-        return 1;
-    }
-    if (getDecodedChar(&b4)) {
-        return 1;
-    }
-    *res = (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
     return 0;
 }
 
-void sendWord(unsigned int word)
+void sendWord(word_t word)
 {
-    putEncodedChar(word & 0xff);
-    putEncodedChar((word >> 8) & 0xff);
-    putEncodedChar((word >> 16) & 0xff);
-    putEncodedChar((word >> 24) & 0xff);
+    for (word_t i = 0; i < seL4_WordBits; i += 8) {
+        putEncodedChar(word & 0xff);
+        word >>= 8u;
+    }
 }
 
 static cte_t *getMDBParent(cte_t *slot)
@@ -122,26 +112,26 @@ static cte_t *getMDBParent(cte_t *slot)
 
 static void sendRunqueues(void)
 {
-    for (uint32_t i = 0; i < CONFIG_MAX_NUM_NODES; i++) {
+    for (word_t i = 0; i < CONFIG_MAX_NUM_NODES; i++) {
         for (tcb_t *curr = NODE_STATE_ON_CORE(ksDebugTCBs, i); curr != NULL; curr = curr->tcbDebugNext) {
             thread_state_t *state = &curr->tcbState;
             if (thread_state_ptr_get_tsType(state) != ThreadState_IdleThreadState &&
                 thread_state_ptr_get_tsType(state) != ThreadState_Inactive) {
-                sendWord((unsigned int)curr);
+                sendWord((word_t)curr);
             }
         }
     }
 }
 
-static void sendEPQueue(unsigned int epptr)
+static void sendEPQueue(word_t epptr)
 {
     tcb_t *current = (tcb_t *)endpoint_ptr_get_epQueue_head((endpoint_t *)epptr);
     for (; current != NULL; current = current->tcbEPNext) {
-        sendWord((unsigned int)current);
+        sendWord((word_t)current);
     }
 }
 
-static void sendCNode(unsigned int address, unsigned int sizebits)
+static void sendCNode(word_t address, word_t sizebits)
 {
     word_t i;
     cte_t *start = (cte_t *)address;
@@ -152,14 +142,14 @@ static void sendCNode(unsigned int address, unsigned int sizebits)
             sendWord(i);
             sendWord(cap.words[0]);
             sendWord(cap.words[1]);
-            sendWord((unsigned int)parent);
+            sendWord((word_t)parent);
         }
     }
 }
 
 static void sendIRQNode(void)
 {
-    sendCNode((unsigned int)intStateIRQNode, 8);
+    sendCNode((word_t)intStateIRQNode, 8);
 }
 
 static void sendVersion(void)
@@ -192,8 +182,8 @@ void capDL(void)
             break;
             case EP_COMMAND: {
                 /*endpoint waiters */
-                unsigned int arg;
-                result = getArg32(&arg);
+                word_t arg;
+                result = getWord(&arg);
                 if (result) {
                     continue;
                 }
@@ -203,12 +193,12 @@ void capDL(void)
             break;
             case CN_COMMAND: {
                 /*cnode */
-                unsigned int address, sizebits;
-                result = getArg32(&address);
+                word_t address, sizebits;
+                result = getWord(&address);
                 if (result) {
                     continue;
                 }
-                result = getArg32(&sizebits);
+                result = getWord(&sizebits);
                 if (result) {
                     continue;
                 }
@@ -218,17 +208,17 @@ void capDL(void)
             }
             case TCB_COMMAND: {
                 /*cnode */
-                unsigned int address, sizebits;
-                result = getArg32(&address);
+                word_t address, sizebits;
+                result = getWord(&address);
                 if (result) {
                     continue;
                 }
-                result = getArg32(&sizebits);
+                result = getWord(&sizebits);
                 if (result) {
                     continue;
                 }
 
-                sendCNode((unsigned int)TCB_PTR_CTE_PTR(address, 0), sizebits);
+                sendCNode((word_t)TCB_PTR_CTE_PTR(address, 0), sizebits);
                 putDebugChar(END);
             }
             break;
@@ -248,8 +238,8 @@ void capDL(void)
                 putDebugChar(END);
             }
             default: {
-                unsigned int arg;
-                result = getArg32(&arg);
+                word_t arg;
+                result = getWord(&arg);
                 if (result) {
                     continue;
                 }
