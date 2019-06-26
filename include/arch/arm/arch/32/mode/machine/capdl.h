@@ -11,6 +11,9 @@
 #ifndef __ARCH_MACHINE_CAPDL_H
 #define __ARCH_MACHINE_CAPDL_H
 
+#define ARCH 0xe0
+
 #define PT_COMMAND  0xc0
+#define PD_COMMAND  0xc1
 
 #endif

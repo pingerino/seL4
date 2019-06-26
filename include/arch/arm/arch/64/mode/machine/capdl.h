@@ -11,6 +11,11 @@
 #ifndef __ARCH_MACHINE_CAPDL_H
 #define __ARCH_MACHINE_CAPDL_H
 
+#define ARCH 0xe0 /* TODO update? */
+
 #define PT_COMMAND  0xc0
+#define PD_COMMAND  0xc1
+#define PGD_COMMAND 0xc2
+#define PUD_COMMAND 0xc3
 
 #endif

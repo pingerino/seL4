@@ -44,4 +44,4 @@ add_sources(
         src/smp/lock.c
         src/smp/ipi.c
 )
-add_sources(DEP ${KernelDebugBuild} CFILES src/machine/capdl.c)
+add_sources(DEP KernelDebugBuild CFILES src/machine/capdl.c)

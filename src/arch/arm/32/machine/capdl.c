@@ -1,26 +1,21 @@
 /*
- * Copyright 2014, General Dynamics C4 Systems
+ * Copyright 2017, Data61
+ * Commonwealth Scientific and Industrial Research Organisation (CSIRO)
+ * ABN 41 687 119 230.
  *
  * This software may be distributed and modified according to the terms of
  * the GNU General Public License version 2. Note that NO WARRANTY is provided.
  * See "LICENSE_GPLv2.txt" for details.
  *
- * @TAG(GD_GPL)
+ * @TAG(DATA61_GPL)
  */
 
-
 #include <config.h>
-#include <object/structures.h>
-#include <object/tcb.h>
-#include <model/statedata.h>
 #include <machine/capdl.h>
-#include <arch/machine/capdl.h>
-#include <machine/io.h>
-#include <plat/machine/hardware.h>
 
 #ifdef CONFIG_DEBUG_BUILD
 
-static void sendPD(unsigned int address)
+static void sendPD(word_t address)
 {
     word_t i, exists;
     pde_t *start = (pde_t *)address;
@@ -44,7 +39,7 @@ static void sendPD(unsigned int address)
     }
 }
 
-static void sendPT(unsigned int address)
+static void sendPT(word_t address)
 {
     word_t i, exists;
     pte_t *start = (pte_t *)address;
@@ -72,22 +67,8 @@ static void sendPT(unsigned int address)
     }
 }
 
-static void sendASIDPool(unsigned int address)
+void doModeCommand(unsigned char c, word_t arg)
 {
-    word_t i;
-    pde_t **start = (pde_t **)address;
-    for (i = 0; i < BIT(ASID_POOL_INDEX_BITS); i++) {
-        pde_t *pde = start[i];
-        if (pde != 0) {
-            sendWord(i);
-            sendWord((unsigned int)pde);
-        }
-    }
-}
-
-int doArchCommand(unsigned char c, word_t arg)
-{
-    switch (c) {
     case PD_COMMAND:
         /*pgdir */
         sendPD(arg);
@@ -98,16 +79,7 @@ int doArchCommand(unsigned char c, word_t arg)
         sendPT(arg);
         putDebugChar(END);
         break;
-    case ASID_POOL_COMMAND:
-        /*asid pool */
-        sendASIDPool(arg);
-        putDebugChar(END);
-        break;
-    default:
-        return 0;
-    }
 
-    return 1;
 }
 
 #endif

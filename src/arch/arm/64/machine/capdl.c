@@ -15,7 +15,7 @@
 
 #ifdef CONFIG_DEBUG_BUILD
 
-void capDL(void)
+void doModeCommand(unsigned char c, word_t arg)
 {
 
 }

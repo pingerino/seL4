@@ -455,7 +455,11 @@ add_sources(
         object/vcpu.c
         smp/ipi.c
 )
-
+add_sources(
+    DEP KernelDebugBuild
+    PREFIX src/arch/arm
+    CFILES machine/capdl.c
+)
 add_bf_source_old("KernelArchARM" "structures.bf" "include/arch/arm" "arch/object")
 
 include(src/arch/arm/32/config.cmake)
