@@ -15,8 +15,6 @@
 
 #include <config.h>
 #include <stdint.h>
-#include <plat/machine/hardware.h>
-#include <mode/machine.h>
 
 /* Use Hypervisor Physical timer */
 #ifdef CONFIG_ARM_HYPERVISOR_SUPPORT

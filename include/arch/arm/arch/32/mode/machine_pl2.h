@@ -12,7 +12,6 @@
 #define __ARCH_MACHINE_PL2_32_H
 
 #include <config.h>
-#include <arch/object/vcpu.h>
 
 #ifdef CONFIG_ARM_HYPERVISOR_SUPPORT
 
