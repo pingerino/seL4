@@ -20,6 +20,7 @@
 #include <util.h>
 #include <mode/machine.h>
 #include <arch/model/statedata.h>
+#include <arch/model/smp.h>
 #include <smp/ipi.h>
 #include <util.h>
 
