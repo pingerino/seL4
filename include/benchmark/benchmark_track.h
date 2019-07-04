@@ -17,6 +17,7 @@
 #include <sel4/arch/constants.h>
 #include <machine/io.h>
 #include <kernel/cspace.h>
+#include <model/smp.h>
 #include <model/statedata.h>
 #include <mode/machine.h>
 
