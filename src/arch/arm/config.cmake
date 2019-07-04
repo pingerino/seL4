@@ -235,6 +235,12 @@ add_sources(
 )
 
 add_bf_source_old("KernelArchARM" "structures.bf" "include/arch/arm" "arch/object")
+add_bf_source_old(
+    "KernelArchARM"
+    "gic_v2.bf"
+    "include/arch/arm/arch/${KernelWordSize}"
+    "mode/machine"
+)
 
 include(src/arch/arm/32/config.cmake)
 include(src/arch/arm/64/config.cmake)
