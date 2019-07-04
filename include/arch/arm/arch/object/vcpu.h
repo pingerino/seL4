@@ -15,6 +15,7 @@
 
 #ifdef CONFIG_ARM_HYPERVISOR_SUPPORT
 
+#include <plat/platform_gen.h>
 #include <api/failures.h>
 #include <linker.h>
 

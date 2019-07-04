@@ -20,7 +20,6 @@
 #include <arch/machine/hardware.h>
 #include <plat/machine/hardware.h>
 #include <armv/machine.h>
-#include <arch/model/smp.h>
 
 #include <machine/io.h>
 #include <mode/machine_pl2.h>
