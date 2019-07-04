@@ -14,8 +14,6 @@
 #define __ARCH_MODE_MACHINE_TIMER_H_
 
 #include <config.h>
-#include <plat/machine/hardware.h>
-#include <mode/machine.h>
 
 #ifdef CONFIG_ARM_HYPERVISOR_SUPPORT
 #define CNT_TVAL "cnthp_tval_el2"
