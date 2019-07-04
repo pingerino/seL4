@@ -16,7 +16,7 @@
 #include <armv/vcpu.h>
 #include <arch/machine/debug.h> /* Arch_debug[A/Di]ssociateVCPUTCB() */
 #include <arch/machine/debug_conf.h>
-#include <arch/machine/gic_v2.h>
+#include <plat/platform_gen.h>
 
 
 static inline void vcpu_save_reg(vcpu_t *vcpu, word_t reg)
