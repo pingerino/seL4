@@ -111,10 +111,15 @@ static void gicv3_enable_sre(void)
     uint32_t val = 0;
 
     /* ICC_SRE_EL1 */
-    SYSTEM_READ_WORD(ICC_SRE_EL1, val);
-    val |= GICC_SRE_EL1_SRE;
+    SYSTEM_READ_WORD(ICC_SRE, val);
+    val |= GICC_SRE_SRE;
+    if (config_set(CONFIG_ARM_HYPERVISOR_SUPPORT)) {
+        /* don't trap to el2 on access to ICC_SRE_EL1 */
+        /* TODO is this what we want permanently @yanyan?? */
+        val |= GICC_SRE_EL2_EL1;
+    }
 
-    SYSTEM_WRITE_WORD(ICC_SRE_EL1, val);
+    SYSTEM_WRITE_WORD(ICC_SRE, val);
     isb();
 }
 
@@ -349,3 +354,19 @@ void ipi_send_target(irq_t irq, word_t cpuTargetList)
     gic_dist->sgi_control = (cpuTargetList << GICD_SGIR_CPUTARGETLIST_SHIFT) | (irq << GICD_SGIR_SGIINTID_SHIFT);
 }
 #endif /* ENABLE_SMP_SUPPORT */
+#ifdef CONFIG_ARM_HYPERVISOR_SUPPORT
+unsigned int gic_vcpu_num_list_regs;
+
+void gic_handle_virq(int irq_idx)
+{
+    for (int i = 0; i < gic_vcpu_num_list_regs; i++) {
+        if (irq_idx & BIT(i)) {
+            virq_t virq = get_gic_vcpu_ctrl_lr(i);
+            assert(virq_get_virqType(virq) == virq_virq_inactive);
+            virq = virq_virq_inactive_set_pintid(virq, 0);
+            set_gic_vcpu_ctrl_lr(i, virq);
+            ARCH_NODE_STATE(armHSCurVCPU)->vgic.lr[i] = virq;
+        }
+    }
+}
+#endif
