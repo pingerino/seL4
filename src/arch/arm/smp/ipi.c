@@ -65,6 +65,13 @@ static void handleRemoteCall(IpiModeRemoteCall_t call, word_t arg0,
             maskInterrupt(arg0, arg1);
             break;
 
+        case IpiRemoteCall_VCPUInjectInterrupt: {
+            virq_t virq;
+            virq.words[0] = arg2;
+            handleVCPUInjectInterruptIPI((vcpu_t *) arg0, arg1, virq);
+            break;
+        }
+
         default:
             fail("Invalid remote call");
             break;
