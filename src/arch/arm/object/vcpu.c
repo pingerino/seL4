@@ -421,6 +421,7 @@ void vcpu_init(vcpu_t *vcpu)
 #endif
     /* GICH VCPU interface control */
     vcpu->vgic.hcr = VGIC_HCR_EN;
+    vcpu->vgic.vmcr = 0xff000002; // TODO @yanyan wtf
 }
 
 void vcpu_switch(vcpu_t *new)
@@ -567,6 +568,7 @@ exception_t invokeVCPUInjectIRQ(vcpu_t *vcpu, unsigned long index, virq_t virq)
 {
     if (likely(ARCH_NODE_STATE(armHSCurVCPU) == vcpu)) {
         set_gic_vcpu_ctrl_lr(index, virq);
+        vcpu->vgic.lr[index] = virq; // TODO @yanyan required?
     } else {
         vcpu->vgic.lr[index] = virq;
     }
