@@ -43,6 +43,7 @@ volatile struct gic_rdist_sgi_ppi_map *gic_rdist_sgi_ppi_map[CONFIG_MAX_NUM_NODE
 #define MPIDR_AFF2(x) ((x >> 16) & 0xff)
 #define MPIDR_AFF3(x) ((x >> 32) & 0xff)
 #define MPIDR_MT(x)   (x & BIT(24))
+#define MPIDR_AFF_MASK(x) (x & 0xff00ffffff)
 
 static uint64_t mpidr_map[CONFIG_MAX_NUM_NODES];
 
@@ -394,6 +395,18 @@ void ipi_send_target(irq_t irq, word_t cpuTargetList)
     }
     isb();
 }
+
+void setIRQTarget(irq_t irq, seL4_Word target)
+{
+    if (irq < NR_GIC_LOCAL_IRQS) {
+        fail("PPI can't have designated target core\n");
+        return;
+    }
+
+    gic_dist->iroutern[irq - NR_GIC_LOCAL_IRQS] = MPIDR_AFF_MASK(mpidr_map[target]);
+    gicv3_do_wait_for_rwp(&gic_rdist_map[target]->ctlr);
+}
+
 #endif /* ENABLE_SMP_SUPPORT */
 #ifdef CONFIG_ARM_HYPERVISOR_SUPPORT
 unsigned int gic_vcpu_num_list_regs;
