@@ -25,6 +25,12 @@
 #define GIC_DEADLINE_MS 2
 #define GIC_REG_WIDTH   32
 
+#define ICC_SGI1R_EL1 "S3_0_C12_C11_5"
+#define ICC_SGI1R_INTID_SHIFT          (24)
+#define ICC_SGI1R_AFF1_SHIFT           (16)
+#define ICC_SGI1R_IRM_BIT              (40)
+#define ICC_SGI1R_CPUTARGETLIST_MASK   0xffff
+
 volatile struct gic_dist_map *const gic_dist = (volatile struct gic_dist_map *)(GICD_PPTR);
 volatile void *const gicr_base = (volatile uint8_t *)(GICR_PPTR);
 
@@ -344,14 +350,49 @@ BOOT_CODE void cpu_initLocalIRQController(void)
 * 3-0:   SGIINTID
 * software generated interrupt id, from 0 to 15...
 */
+
+#define MPIDR_MT(x)   (x & BIT(24))
+
 void ipiBroadcast(irq_t irq, bool_t includeSelfCPU)
 {
-    gic_dist->sgi_control = (!includeSelfCPU << GICD_SGIR_TARGETLISTFILTER_SHIFT) | (irq << GICD_SGIR_SGIINTID_SHIFT);
+    uint64_t sgi1r = irq << ICC_SGI1R_INTID_SHIFT;
+    sgi1r |= BIT(ICC_SGI1R_IRM_BIT);
+    if (!includeSelfCPU) {
+        SYSTEM_WRITE_WORD(ICC_SGI1R_EL1, sgi1r);
+        isb();
+        return;
+    }
+
+    if (MPIDR_MT(mpidr_map[getCurrentCPUIndex()])) {
+        /* send to all but self */
+        SYSTEM_WRITE_WORD(ICC_SGI1R_EL1, sgi1r);
+        /* send to self */
+        sgi1r = (irq << ICC_SGI1R_INTID_SHIFT) | (getCurrentCPUIndex() << ICC_SGI1R_AFF1_SHIFT) | 1;
+    } else {
+        /* set the AFF0 bits */
+        sgi1r |= MASK(CONFIG_MAX_NUM_NODES);
+    }
+
+    SYSTEM_WRITE_WORD(ICC_SGI1R_EL1, sgi1r);
 }
 
 void ipi_send_target(irq_t irq, word_t cpuTargetList)
 {
-    gic_dist->sgi_control = (cpuTargetList << GICD_SGIR_CPUTARGETLIST_SHIFT) | (irq << GICD_SGIR_SGIINTID_SHIFT);
+    uint64_t sgi1r = irq << ICC_SGI1R_INTID_SHIFT;
+    if (MPIDR_MT(mpidr_map[getCurrentCPUIndex()])) {
+        for (word_t i = 0; i < CONFIG_MAX_NUM_NODES; i++) {
+            if (cpuTargetList & BIT(i)) {
+                sgi1r = (irq << ICC_SGI1R_INTID_SHIFT) |
+                        (i << ICC_SGI1R_AFF1_SHIFT) | 1;
+
+                SYSTEM_WRITE_WORD(ICC_SGI1R_EL1, sgi1r);
+            }
+        }
+    } else {
+        sgi1r |= cpuTargetList;
+        SYSTEM_WRITE_WORD(ICC_SGI1R_EL1, sgi1r);
+    }
+    isb();
 }
 #endif /* ENABLE_SMP_SUPPORT */
 #ifdef CONFIG_ARM_HYPERVISOR_SUPPORT
