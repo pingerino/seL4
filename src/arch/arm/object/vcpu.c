@@ -420,6 +420,7 @@ void vcpu_init(vcpu_t *vcpu)
 #endif
     /* GICH VCPU interface control */
     vcpu->vgic.hcr = VGIC_HCR_EN;
+    vcpu->vgic.vmcr = VGIC_VMCR_VPMR | VGIC_VMCR_VENG1;
 }
 
 void vcpu_switch(vcpu_t *new)
