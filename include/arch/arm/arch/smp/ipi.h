@@ -22,6 +22,9 @@ typedef enum {
     IpiRemoteCall_InvalidateTranslationASID,
     IpiRemoteCall_InvalidateTranslationAll,
     IpiRemoteCall_switchFpuOwner,
+#ifdef CONFIG_ARM_HYPERVISOR_SUPPORT
+    IpiRemoteCall_VCPUInjectInterrupt,
+#endif
     /* Add relevant calls here upon required */
     IpiNumArchRemoteCall
 } IpiRemoteCall_t;
