@@ -108,11 +108,27 @@ static void arm_load_thread_id(tcb_t *thread)
 #define TCR_EL2_ORGN0_WBWC  BIT(10)
 #define TCR_EL2_SH0_ISH     (3 << 12)
 #define TCR_EL2_TG0_4K      (0 << 14)
-#define TCR_EL2_TCR_PS_16T  (4 << 16)
 
-/* The default value for TCR_EL2 is for 44-bit PARange. */
+#define TCR_EL2_TCR_PS_4G   0
+#define TCR_EL2_TCR_PS_64G  1
+#define TCR_EL2_TCR_PS_1T   2
+#define TCR_EL2_TCR_PS_4T   3
+#define TCR_EL2_TCR_PS_16T  4
+#define TCR_EL2_TCR_PS_256T 5
+#define TCR_EL2_TCR_PS_4P   6
+#define TCR_EL2_TCR_PS_SHIFT 16
+
+#if defined CONFIG_ARM_PA_SIZE_BITS_44
+#define TCR_EL2_TCR_PS TCR_EL2_TCR_PS_16T
+#elif defined CONFIG_ARM_PA_SIZE_BITS_40
+#define TCR_EL2_TCR_PS TCR_EL2_TCR_PS_1T
+#else
+#error "Unsupported PA size"
+#endif
+
 #define TCR_EL2_DEFAULT (TCR_EL2_T0SZ | TCR_EL2_IRGN0_WBWC | TCR_EL2_ORGN0_WBWC | \
-                 TCR_EL2_SH0_ISH | TCR_EL2_TG0_4K | TCR_EL2_TCR_PS_16T  | \
+                 TCR_EL2_SH0_ISH | TCR_EL2_TG0_4K | \
+                 (TCR_EL2_TCR_PS << TCR_EL2_TCR_PS_SHIFT) | \
                  TCR_EL2_RES1)
 
 /* Check if the elfloader set up the TCR_EL2 correctly. */
