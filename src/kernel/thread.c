@@ -420,8 +420,13 @@ void scheduleTCB(tcb_t *tptr)
     }
 }
 
+static int x = 0;
 void timerTick(void)
 {
+    x++;
+    if (x % 1000 == 0) {
+        printf("\nTICK %p\n\n", (void *) getRestartPC(NODE_STATE(ksCurThread)));
+    }
     if (likely(thread_state_get_tsType(NODE_STATE(ksCurThread)->tcbState) ==
                ThreadState_Running)
 #ifdef CONFIG_VTX

@@ -392,7 +392,7 @@ void VGICMaintenance(void)
 
         /* the hardware should never give us an invalid index, but we don't
          * want to trust it that far */
-        if (irq_idx == GIC_INVALID_IRQ_IDX || irq_idx >= gic_vcpu_num_list_regs) {
+        if (irq_idx == GIC_INVALID_IRQ_IDX || irq_idx >= MASK(gic_vcpu_num_list_regs)) {
             current_fault = seL4_Fault_VGICMaintenance_new(0, 0);
         } else {
             gic_handle_virq(irq_idx);
@@ -626,6 +626,7 @@ exception_t decodeVCPUInjectIRQ(cap_t cap, unsigned int length, word_t *buffer)
         current_syscall_error.type = seL4_RangeError;
         return EXCEPTION_SYSCALL_ERROR;
     }
+#ifndef CONFIG_ARM_GIC_V3
     if (priority > 31) {
         current_syscall_error.type = seL4_RangeError;
         current_syscall_error.rangeErrorMin = 0;
@@ -634,6 +635,7 @@ exception_t decodeVCPUInjectIRQ(cap_t cap, unsigned int length, word_t *buffer)
         current_syscall_error.type = seL4_RangeError;
         return EXCEPTION_SYSCALL_ERROR;
     }
+#endif
     if (group > 1) {
         current_syscall_error.type = seL4_RangeError;
         current_syscall_error.rangeErrorMin = 0;
