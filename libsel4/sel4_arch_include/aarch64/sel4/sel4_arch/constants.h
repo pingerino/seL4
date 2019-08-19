@@ -109,6 +109,9 @@ enum {
     seL4_VCPUReg_SP_EL1,
     seL4_VCPUReg_ELR_EL1,
     seL4_VCPUReg_SPSR_EL1, // 32-bit
+
+    /* set the MIPDR_EL1 of the current running VCPU */
+    seL4_VCPUReg_VMPIDR_EL2,
     seL4_VCPUReg_Num,
 } seL4_VCPUReg;
 

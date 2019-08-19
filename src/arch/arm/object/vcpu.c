@@ -281,7 +281,7 @@ static void vcpu_save(vcpu_t *vcpu, bool_t active)
     }
 
 #ifdef CONFIG_ARCH_AARCH64
-    vcpu_save_reg_range(vcpu, seL4_VCPUReg_TTBR0, seL4_VCPUReg_SPSR_EL1);
+    vcpu_save_reg_range(vcpu, seL4_VCPUReg_TTBR0, seL4_VCPUReg_VMPIDR_EL2);
 #else
     /* save registers */
     vcpu_save_reg_range(vcpu, seL4_VCPUReg_ACTLR, seL4_VCPUReg_SPSRfiq);
@@ -364,7 +364,7 @@ void vcpu_restore(vcpu_t *vcpu)
 
     /* restore registers */
 #ifdef CONFIG_ARCH_AARCH64
-    vcpu_restore_reg_range(vcpu, seL4_VCPUReg_TTBR0, seL4_VCPUReg_SPSR_EL1);
+    vcpu_restore_reg_range(vcpu, seL4_VCPUReg_TTBR0, seL4_VCPUReg_VMPIDR_EL2);
 #else
     vcpu_restore_reg_range(vcpu, seL4_VCPUReg_ACTLR, seL4_VCPUReg_SPSRfiq);
 #endif
