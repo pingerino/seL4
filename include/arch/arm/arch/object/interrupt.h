@@ -29,6 +29,8 @@ static inline void handleReservedIRQ(irq_t irq)
     printf("Received reserved IRQ: %d\n", (int)irq);
 #endif
 
+    SMP_COND_STATEMENT(irq = IDX_TO_IRQ(irq));
+
 #ifdef CONFIG_ARM_ENABLE_PMU_OVERFLOW_INTERRUPT
     if (irq == KERNEL_PMU_IRQ) {
         handleOverflowIRQ();
